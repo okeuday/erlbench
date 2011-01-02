@@ -18,7 +18,7 @@
 
 -module(integer_key).
 
--export([test/0, get/3, set/3]).
+-export([test/0, get/3, get_concurrent/2, set/3]).
 
 data1(N) ->
     %% size implies fixed-size array 
@@ -53,6 +53,9 @@ data9(_) ->
 data10(_) ->
     undefined.
 
+data11(_) ->
+    ets:new(ets_test_2, [{read_concurrency, true}]).
+
 array_set(Array, I, Value) ->
     %% array indexing starts at 0
     array:set(I - 1, Value, Array).
@@ -77,7 +80,8 @@ dict_set(Dict, I, Value) ->
     dict:store(I, Value, Dict).
 
 ets_set(Tid, I, Value) ->
-    ets:insert(Tid, {I, Value}).
+    true = ets:insert(Tid, {I, Value}),
+    Tid.
 
 pdict_set(_, I, Value) ->
     erlang:put(I, Value).
@@ -104,7 +108,7 @@ dict_get(Dict, I) ->
     dict:fetch(I, Dict).
 
 ets_get(Tid, I) ->
-    ets:lookup_element(Tid, I).
+    ets:lookup_element(Tid, I, 2).
 
 pdict_get(_, I) ->
     erlang:get(I).
@@ -115,6 +119,22 @@ get(_, _, 0) ->
 get(Fun, Data, N) ->
     true = N == Fun(Data, N),
     get(Fun, Data, N - 1).
+
+get_concurrent(Processes, Arguments) ->
+    Parent = self(),
+    Children = lists:map(fun(_) ->
+        erlang:spawn(fun() ->
+            ok = erlang:apply(integer_key, get, Arguments),
+            Parent ! {self(), done}
+        end)
+    end, lists:seq(1, Processes)),
+    lists:foreach(fun(Child) ->
+        receive
+            {Child, done} ->
+                ok
+        end
+    end, Children),
+    ok.
 
 set(_, Data, 0) ->
     Data;
@@ -157,6 +177,9 @@ test(N) ->
     %% process dictionary
     {S10, D10} = timer:tc(integer_key, set, [fun pdict_set/3, data10(N), N]),
     {G10, _} = timer:tc(integer_key, get, [fun pdict_get/2, D10, N]),
+    %% ets with 10 concurrent accesses
+    {_, D11} = timer:tc(integer_key, set, [fun ets_set/3, data11(N), N]),
+    {G11, _} = timer:tc(integer_key, get_concurrent, [10, [fun ets_get/2, D11, N]]),
     %% results
     io:format("N == ~8w~n", [N]),
     io:format("array (fixed):    get: ~8w µs, set: ~8w µs~n", [G1 , S1]),
@@ -169,5 +192,6 @@ test(N) ->
     io:format("dict:             get: ~8w µs, set: ~8w µs~n", [G8 , S8]),
     io:format("ets (set):        get: ~8w µs, set: ~8w µs~n", [G9 , S9]),
     io:format("process dict:     get: ~8w µs, set: ~8w µs~n", [G10 , S10]),
+    io:format("ets x10 (set):    get: ~8w µs~n", [erlang:round(G11 / 10.0)]),
     ok.
 
