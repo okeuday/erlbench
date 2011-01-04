@@ -18,7 +18,9 @@
 
 -module(string_key).
 
--export([test/0, get/3, get_concurrent/2, set/3]).
+-export([test/0, test/1, get/3, get_concurrent/2, set/3]).
+
+-include("erlbench.hrl").
 
 -define(WORDLIST, "/usr/share/dict/words").
 
@@ -155,24 +157,36 @@ test(N) ->
     %% ets
     {S7, D7} = timer:tc(string_key, set, [fun ets_set/3, data7(), Words]),
     {G7, _} = timer:tc(string_key, get, [fun ets_get/2, D7, Words]),
+    ets:delete(D7),
     %% process dictionary
     {S8, D8} = timer:tc(string_key, set, [fun pdict_set/3, data8(), Words]),
     {G8, _} = timer:tc(string_key, get, [fun pdict_get/2, D8, Words]),
     %% ets with 10 concurrent accesses
     {_, D9} = timer:tc(string_key, set, [fun ets_set/3, data9(), Words]),
     {G9, _} = timer:tc(string_key, get_concurrent, [10, [fun ets_get/2, D9, Words]]),
+    ets:delete(D9),
     %% results
-    io:format("N == ~8w~n", [N]),
-    io:format("gb_trees:         get: ~8w µs, set: ~8w µs~n", [G1, S1]),
-    io:format("rbdict:           get: ~8w µs, set: ~8w µs~n", [G2, S2]),
-    io:format("aadict:           get: ~8w µs, set: ~8w µs~n", [G3, S3]),
-    io:format("orddict:          get: ~8w µs, set: ~8w µs~n", [G4, S4]),
-    io:format("dict:             get: ~8w µs, set: ~8w µs~n", [G5, S5]),
-    io:format("trie:             get: ~8w µs, set: ~8w µs~n", [G6, S6]),
-    io:format("ets (set):        get: ~8w µs, set: ~8w µs~n", [G7, S7]),
-    io:format("process dict:     get: ~8w µs, set: ~8w µs~n", [G8, S8]),
-    io:format("ets x10 (set):    get: ~8w µs~n", [erlang:round(G9 / 10.0)]),
-    ok.
+    %io:format("N == ~8w~n", [N]),
+    %io:format("gb_trees:         get: ~8w µs, set: ~8w µs~n", [G1, S1]),
+    %io:format("rbdict:           get: ~8w µs, set: ~8w µs~n", [G2, S2]),
+    %io:format("aadict:           get: ~8w µs, set: ~8w µs~n", [G3, S3]),
+    %io:format("orddict:          get: ~8w µs, set: ~8w µs~n", [G4, S4]),
+    %io:format("dict:             get: ~8w µs, set: ~8w µs~n", [G5, S5]),
+    %io:format("trie:             get: ~8w µs, set: ~8w µs~n", [G6, S6]),
+    %io:format("ets (set):        get: ~8w µs, set: ~8w µs~n", [G7, S7]),
+    %io:format("process dict:     get: ~8w µs, set: ~8w µs~n", [G8, S8]),
+    %io:format("ets x10 (set):    get: ~8w µs~n", [erlang:round(G9 / 10.0)]),
+    [
+        #result{name = "gb_trees",            get =  G1, set =  S1},
+        #result{name = "rbdict",              get =  G2, set =  S2},
+        #result{name = "aadict",              get =  G3, set =  S3},
+        #result{name = "orddict",             get =  G4, set =  S4},
+        #result{name = "dict",                get =  G5, set =  S5},
+        #result{name = "trie",                get =  G6, set =  S6},
+        #result{name = "ets (set)",           get =  G7, set =  S7},
+        #result{name = "process dictionary",  get =  G8, set =  S8},
+        #result{name = "ets x10 (set)",       get = erlang:round(G9 / 10.0)}
+    ].
 
 read_wordlist() ->
     {ok, F} = file:open(?WORDLIST, [read_ahead, raw, read]),
