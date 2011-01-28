@@ -86,11 +86,18 @@
 %%% External interface functions
 %%%------------------------------------------------------------------------
 
+-type trie() :: [] | {integer(), integer(), tuple()}.
+-type trie_return() :: {integer(), integer(), tuple()}.
+
 %%-------------------------------------------------------------------------
 %% @doc
 %% ===Append a value as a list element in a trie instance.===
 %% @end
 %%-------------------------------------------------------------------------
+
+-spec append(Key :: string(),
+             Value :: any(),
+             Node :: trie()) -> trie_return().
 
 append([_ | _] = Key, Value, Node) ->
     ValueList = [Value],
@@ -102,6 +109,10 @@ append([_ | _] = Key, Value, Node) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec append_list(Key :: string(),
+                  ValueList :: list(),
+                  Node :: trie()) -> trie_return().
+
 append_list([_ | _] = Key, ValueList, Node) ->
     update(Key, fun(OldValue) -> OldValue ++ ValueList end, ValueList, Node).
 
@@ -110,6 +121,9 @@ append_list([_ | _] = Key, ValueList, Node) ->
 %% ===Erase a value in a trie.===
 %% @end
 %%-------------------------------------------------------------------------
+
+-spec erase(Key :: string(),
+            Node :: trie()) -> trie().
 
 erase([_ | _] = Key, Node) ->
     erase_node(Key, Node).
@@ -153,6 +167,9 @@ erase_node([H | T], {I0, I1, Data} = OldNode)
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec fetch(string(),
+            trie_return()) -> any().
+
 fetch([H], {I0, I1, Data})
     when is_integer(H), H >= I0, H =< I1 ->
     {Node, Value} = erlang:element(H - I0 + 1, Data),
@@ -180,6 +197,8 @@ fetch([H | T], {I0, I1, Data})
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec fetch_keys(Node :: trie()) -> list(string()).
+
 fetch_keys(Node) ->
     foldr(fun(Key, _, L) -> [Key | L] end, [], Node).
 
@@ -188,6 +207,12 @@ fetch_keys(Node) ->
 %% ===Filter a trie with a predicate function.===
 %% @end
 %%-------------------------------------------------------------------------
+
+-spec filter(F :: fun((string(), any()) -> boolean()),
+             Node :: trie()) -> trie().
+
+filter(F, [] = Node) when is_function(F, 2) ->
+    Node;
 
 filter(F, Node) when is_function(F, 2) ->
     filter_node(F, [], Node).
@@ -249,6 +274,8 @@ filter_element(F, I, Offset, Key, Data) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec find(string(), trie()) -> {ok, any()} | 'error'.
+
 find([H | _], {I0, I1, _})
     when H < I0; H > I1 ->
     error;
@@ -258,7 +285,12 @@ find([H], {I0, _, Data})
     {Node, Value} = erlang:element(H - I0 + 1, Data),
     if
         is_tuple(Node); Node == [] ->
-            Value;
+            if
+                Value == error ->
+                    error;
+                true ->
+                    {ok, Value}
+            end;
         true ->
             error
     end;
@@ -270,7 +302,12 @@ find([H | T], {I0, _, Data})
         {_, _, _} ->
             find(T, Node);
         T ->
-            Value;
+            if
+                Value == error ->
+                    error;
+                true ->
+                    {ok, Value}
+            end;
         _ ->
             error
     end;
@@ -283,6 +320,8 @@ find(_, []) ->
 %% ===Find a value in a trie by prefix.===
 %% @end
 %%-------------------------------------------------------------------------
+
+-spec find_prefix(string(), trie()) -> {ok, any()} | 'prefix' | 'error'.
 
 find_prefix([H | _], {I0, I1, _})
     when H < I0; H > I1 ->
@@ -297,10 +336,15 @@ find_prefix([H], {I0, _, Data})
                 Value == error ->
                     prefix;
                 true ->
-                    Value
+                    {ok, Value}
             end;
         Node == [] ->
-            Value;
+            if
+                Value == error ->
+                    error;
+                true ->
+                    {ok, Value}
+            end;
         true ->
             prefix
     end;
@@ -314,7 +358,12 @@ find_prefix([H | T], {I0, _, Data})
         [] ->
             prefix;
         T ->
-            Value;
+            if
+                Value == error ->
+                    error;
+                true ->
+                    {ok, Value}
+            end;
         L ->
             case lists:prefix(T, L) of
                 true ->
@@ -334,8 +383,16 @@ find_prefix(_, []) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec fold(F :: fun((string(), any(), any()) -> any()),
+           A :: any(),
+           Node :: trie()) -> any().
+
 fold(F, A, Node) when is_function(F, 3) ->
     foldl(F, A, Node).
+
+-spec foldl(F :: fun((string(), any(), any()) -> any()),
+            A :: any(),
+            Node :: trie()) -> any().
 
 foldl(F, A, []) when is_function(F, 3) ->
     A;
@@ -381,6 +438,10 @@ foldl_element(F, A, I, N, Offset, Key, Data) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec foldr(F :: fun((string(), any(), any()) -> any()),
+            A :: any(),
+            Node :: trie()) -> any().
+
 foldr(F, A, []) when is_function(F, 3) ->
     A;
 
@@ -425,6 +486,9 @@ foldr_element(F, A, I, Offset, Key, Data) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec foreach(F :: fun((string(), any()) -> any()),
+              Node :: trie()) -> any().
+
 foreach(F, []) when is_function(F, 2) ->
     ok;
 
@@ -467,6 +531,8 @@ foreach_element(F, I, N, Offset, Key, Data) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec from_list(list()) -> trie().
+
 from_list(L) ->
     new(L).
 
@@ -475,6 +541,8 @@ from_list(L) ->
 %% ===Determine if a key exists in a trie.===
 %% @end
 %%-------------------------------------------------------------------------
+
+-spec is_key(string(), trie()) -> boolean().
 
 is_key([H | _], {I0, I1, _})
     when H < I0; H > I1 ->
@@ -511,6 +579,9 @@ is_key(_, []) ->
 %% Traverses in alphabetical order.
 %% @end
 %%-------------------------------------------------------------------------
+
+-spec iter(F :: fun((string(), any(), fun(() -> any())) -> any()),
+           Node :: trie()) -> ok.
 
 iter(F, []) when is_function(F, 3) ->
     ok;
@@ -563,6 +634,10 @@ iter_element(F, I, N, Offset, Key, Data) ->
 %% Traverses in alphabetical order.
 %% @end
 %%-------------------------------------------------------------------------
+
+-spec itera(F :: fun((string(), any(), any(), fun((any()) -> any())) -> any()),
+            A :: any(),
+            Node :: trie()) -> any().
 
 itera(F, A, []) when is_function(F, 4) ->
     A;
@@ -624,6 +699,9 @@ itera_element(F, {trie_itera_done, A} = ReturnValue, I, N, Offset, Key, Data) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec map(F :: fun((string(), any()) -> any()),
+          Node :: trie()) -> trie().
+
 map(F, [] = Node) when is_function(F, 2) ->
     Node;
 
@@ -670,6 +748,10 @@ map_element(F, I, Offset, Key, Data) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec merge(F :: fun((string(), any(), any()) -> any()),
+            Node1 :: trie(),
+            Node2 :: trie()) -> trie().
+
 merge(F, Node1, []) when is_function(F, 3) ->
     Node1;
 
@@ -687,8 +769,12 @@ merge(F, Node1, Node2) when is_function(F, 3) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec new() -> [].
+
 new() ->
     [].
+
+-spec new(L :: list()) -> trie().
 
 new(L) ->
     new_instance(L, new()).
@@ -723,6 +809,8 @@ new_instance_state([H | T], V1, V0)
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec size(Node :: trie()) -> non_neg_integer().
+
 size(Node) ->
     fold(fun(_, _, I) -> I + 1 end, 0, Node).
 
@@ -732,8 +820,15 @@ size(Node) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec store(Key :: string(),
+            Node :: trie()) -> trie_return().
+
 store(Key, Node) ->
     store(Key, empty, Node).
+
+-spec store(Key :: string(),
+            NewValue :: any(),
+            Node :: trie()) -> trie_return().
 
 store([H | T], NewValue, [])
     when is_integer(H) ->
@@ -798,6 +893,8 @@ store([H | T] = Key, NewValue, {I0, I1, Data})
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec to_list(Node :: trie()) -> list({string(), any()}).
+
 to_list([]) ->
     [];
 
@@ -841,6 +938,10 @@ to_list_element(L, I, Offset, Key, Data) ->
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec update(string(),
+             F :: fun((any()) -> any()),
+             trie_return()) -> trie_return().
+
 update([H], F, {I0, I1, Data})
     when is_integer(H), H >= I0, H =< I1, is_function(F, 1) ->
     I = H - I0 + 1,
@@ -867,6 +968,11 @@ update([H | T], F, {I0, I1, Data})
 %% ===Update or add a value in a trie.===
 %% @end
 %%-------------------------------------------------------------------------
+
+-spec update(Key :: string(),
+             F :: fun((any()) -> any()),
+             Initial :: any(),
+             Node :: trie()) -> trie_return().
 
 update(Key, _, Initial, [] = Node) ->
     store(Key, Initial, Node);
@@ -935,6 +1041,10 @@ update([H | T] = Key, F, Initial, {I0, I1, Data})
 %% @end
 %%-------------------------------------------------------------------------
 
+-spec update_counter(Key :: string(),
+                     Increment :: number(),
+                     Node :: trie()) -> trie_return().
+
 update_counter(Key, Increment, Node) ->
     update(Key, fun(I) -> I + Increment end, Increment, Node).
 
@@ -957,14 +1067,14 @@ test() ->
         trie:new([{"abc", 1},{"aac", 2}]),
     {97,97,{{{97,98,{{"c",2},{"cdefghijklmnopqrstuvwxyz",1}}},error}}} =
         RootNode0 = trie:new([{"abcdefghijklmnopqrstuvwxyz", 1},{"aac", 2}]),
-    1 = trie:find("abcdefghijklmnopqrstuvwxyz", RootNode0),
+    {ok, 1} = trie:find("abcdefghijklmnopqrstuvwxyz", RootNode0),
     error = trie:find("abcdefghijklmnopqrstuvwxy", RootNode0),
-    1 = trie:find_prefix("abcdefghijklmnopqrstuvwxyz", RootNode0),
+    {ok, 1} = trie:find_prefix("abcdefghijklmnopqrstuvwxyz", RootNode0),
     prefix = trie:find_prefix("abcdefghijklmnopqrstuvwxy", RootNode0),
     error = trie:find_prefix("abcdefghijklmnopqrstuvwxyzX", RootNode0),
     prefix = trie:find_prefix("a", RootNode0),
     prefix = trie:find_prefix("aa", RootNode0),
-    2 = trie:find_prefix("aac", RootNode0),
+    {ok, 2} = trie:find_prefix("aac", RootNode0),
     error = trie:find_prefix("aacX", RootNode0),
     {97,97,{{{97,98,{{{98,99,{{"cde",3},{[],2}}},error},{"cdefghijklmnopqrstuvwxyz",1}}},error}}} =
         RootNode1 = trie:store("aabcde", 3, RootNode0),
@@ -988,9 +1098,9 @@ test() ->
     [{"abcdefghijklmnopqrstuvwxyz", 1}, {"aac", 2}, {"aabcde", 3}] =
         foldl(fun(K, V, A) -> [{K,V} | A] end, [], RootNode1),
     error = trie:find("aabcde", RootNode0),
-    3 = trie:find("aabcde", RootNode1),
+    {ok, 3} = trie:find("aabcde", RootNode1),
     RootNode2 = trie:erase("aac", RootNode0),
-    1 = trie:find("abcdefghijklmnopqrstuvwxyz", RootNode2),
+    {ok, 1} = trie:find("abcdefghijklmnopqrstuvwxyz", RootNode2),
     {97,98,{{{98,98,{{[],[2]}}},[1]},{"c",[3]}}} =
         RootNode3 = trie:new([{"a", [1]},{"ab", [2]},{"bc", [3]}]),
     {97,98,{{{98,98,{{[],[2]}}},[1,2]},{"c",[3]}}} =
@@ -1082,9 +1192,9 @@ test() ->
      "aaa",
      "aa"] = trie:foldl(fun(Key, _, L) -> [Key | L] end, [], RootNode4),
     RootNode5 = trie:store("a", 0, trie:store("aaaa", 2.5, RootNode4)),
-    2.5 = trie:find("aaaa", RootNode5),
+    {ok, 2.5} = trie:find("aaaa", RootNode5),
     error = trie:find("aaaa", RootNode4),
-    2.5 = trie:find_prefix("aaaa", RootNode5),
+    {ok, 2.5} = trie:find_prefix("aaaa", RootNode5),
     prefix = trie:find_prefix("aaaa", RootNode4),
     2.5 = trie:fetch("aaaa", RootNode5),
     {'EXIT', {if_clause, _}} = (catch trie:fetch("aaaa", RootNode4)),
