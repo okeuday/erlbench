@@ -67,6 +67,7 @@
          foreach/2,
          from_list/1,
          is_key/2,
+         is_prefix/2,
          iter/2,
          itera/3,
          map/2,
@@ -571,6 +572,57 @@ is_key([H | T], {I0, _, Data})
     end;
 
 is_key(_, []) ->
+    false.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Determine if a prefix exists in a trie.===
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec is_prefix(string(), trie()) -> 'true' | 'false'.
+
+is_prefix([H | _], {I0, I1, _})
+    when H < I0; H > I1 ->
+    false;
+
+is_prefix([H], {I0, _, Data})
+    when is_integer(H) ->
+    {Node, Value} = erlang:element(H - I0 + 1, Data),
+    if
+        is_tuple(Node) ->
+            true;
+        Node == [] ->
+            if
+                Value == error ->
+                    false;
+                true ->
+                    true
+            end;
+        true ->
+            true
+    end;
+
+is_prefix([H | T], {I0, _, Data})
+    when is_integer(H) ->
+    {Node, Value} = erlang:element(H - I0 + 1, Data),
+    case Node of
+        {_, _, _} ->
+            is_prefix(T, Node);
+        [] ->
+            true;
+        T ->
+            if
+                Value == error ->
+                    false;
+                true ->
+                    true
+            end;
+        L ->
+            lists:prefix(T, L)
+    end;
+
+is_prefix(_, []) ->
     false.
 
 %%-------------------------------------------------------------------------
