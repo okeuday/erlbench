@@ -9,7 +9,8 @@
          traverse_append/1,
          traverse_queue/1,
          traverse_as_queue/1,
-         traverse_comprehension/1]).
+         traverse_comprehension/1,
+         traverse_foldr/1]).
 
 -include("erlbench.hrl").
 
@@ -58,6 +59,9 @@ traverse_comprehension(L) ->
     Result = [I + 1 || I <- L],
     Result.
 
+traverse_foldr(L) ->
+    lists:foldr(fun(I, Lnew) -> [(I + 1) | Lnew] end, [], L).
+
 test() ->
     test(10000).
 
@@ -70,12 +74,14 @@ test(N) ->
     {G4, _} = timer:tc(list_traversal, traverse_queue, [List]),
     {G5, _} = timer:tc(list_traversal, traverse_as_queue, [Queue]),
     {G6, _} = timer:tc(list_traversal, traverse_comprehension, [List]),
+    {G7, _} = timer:tc(list_traversal, traverse_foldr, [List]),
     [
         #result{name = "lists:map/2",         get =  G1},
         #result{name = "reverse/traverse",    get =  G2},
         #result{name = "traverse/append",     get =  G3},
         #result{name = "list -> queue",       get =  G4},
         #result{name = "queue traverse",      get =  G5},
-        #result{name = "list comprehension",  get =  G6}
+        #result{name = "list comprehension",  get =  G6},
+        #result{name = "lists:foldr/3",       get =  G7}
     ].
 
