@@ -65,7 +65,7 @@ test(N) ->
     {G4, _} = timer:tc(list_traversal, traverse_queue, [List]),
     {G5, _} = timer:tc(list_traversal, traverse_as_queue, [Queue]),
     [
-        #result{name = "list:map/2",          get =  G1},
+        #result{name = "lists:map/2",         get =  G1},
         #result{name = "reverse/traverse",    get =  G2},
         #result{name = "traverse/append",     get =  G3},
         #result{name = "list -> queue",       get =  G4},
