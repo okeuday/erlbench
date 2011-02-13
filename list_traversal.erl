@@ -8,7 +8,8 @@
          traverse_reverse/1,
          traverse_append/1,
          traverse_queue/1,
-         traverse_as_queue/1]).
+         traverse_as_queue/1,
+         traverse_comprehension/1]).
 
 -include("erlbench.hrl").
 
@@ -23,13 +24,13 @@ traverse_reverse(L) ->
     traverse_reverse([], lists:reverse(L)).
     
 traverse_reverse(L, [H | T]) ->
-    traverse_reverse([H | L], T).
+    traverse_reverse([(H + 1) | L], T).
 
 traverse_append(L) ->
     traverse_append([], L).
 
 traverse_append(L, [H | T]) ->
-    traverse_append(L ++ [H], T).
+    traverse_append(L ++ [H + 1], T).
 
 traverse_queue(L) ->
     traverse_queue(queue:new(), queue:from_list(L)).
@@ -37,7 +38,7 @@ traverse_queue(L) ->
 traverse_queue(Qnew, Qold1) ->
     case queue:out(Qold1) of
         {{value, Item}, Qold2} ->
-            traverse_queue(queue:in(Item, Qnew), Qold2);
+            traverse_queue(queue:in(Item + 1, Qnew), Qold2);
         {empty, Qold1} ->
             queue:to_list(Qnew)
     end.
@@ -48,10 +49,14 @@ traverse_as_queue(Q) ->
 traverse_as_queue(Qnew, Qold1) ->
     case queue:out(Qold1) of
         {{value, Item}, Qold2} ->
-            traverse_as_queue(queue:in(Item, Qnew), Qold2);
+            traverse_as_queue(queue:in(Item + 1, Qnew), Qold2);
         {empty, Qold1} ->
             Qnew
     end.
+
+traverse_comprehension(L) ->
+    Result = [I + 1 || I <- L],
+    Result.
 
 test() ->
     test(10000).
@@ -64,11 +69,13 @@ test(N) ->
     {G3, _} = timer:tc(list_traversal, traverse_append, [List]),
     {G4, _} = timer:tc(list_traversal, traverse_queue, [List]),
     {G5, _} = timer:tc(list_traversal, traverse_as_queue, [Queue]),
+    {G6, _} = timer:tc(list_traversal, traverse_comprehension, [List]),
     [
         #result{name = "lists:map/2",         get =  G1},
         #result{name = "reverse/traverse",    get =  G2},
         #result{name = "traverse/append",     get =  G3},
         #result{name = "list -> queue",       get =  G4},
-        #result{name = "queue traverse",      get =  G5}
+        #result{name = "queue traverse",      get =  G5},
+        #result{name = "list comprehension",  get =  G6}
     ].
 
