@@ -22,7 +22,7 @@
 
 -include("erlbench.hrl").
 
--define(WORDLIST, "/usr/share/dict/words").
+-define(WORDLIST, "words").
 
 data1(_) ->
     gb_trees:empty().
