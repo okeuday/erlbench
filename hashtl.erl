@@ -96,7 +96,7 @@ create([]) ->
     [];
 
 create([I | Is]) ->
-    erlang:make_tuple(I, create(Is)).
+    erlang:make_tuple(I + 1, create(Is)).
 
 store_key([I], KV, Bins) ->
     erlang:setelement(I, Bins, [KV | erlang:element(I, Bins)]);
