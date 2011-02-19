@@ -61,6 +61,9 @@ data11(_) ->
 data12(N) ->
     hasht:new(N).
 
+data13(N) ->
+    hashtl:new(N).
+
 array_set(Array, I, Value) ->
     %% array indexing starts at 0
     array:set(I - 1, Value, Array).
@@ -94,6 +97,9 @@ pdict_set(_, I, Value) ->
 hasht_set(HashT, I, Value) ->
     hasht:store(I, Value, HashT).
 
+hashtl_set(HashT, I, Value) ->
+    hashtl:store(I, Value, HashT).
+
 array_get(Array, I) ->
     array:get(I - 1, Array).
 
@@ -123,6 +129,9 @@ pdict_get(_, I) ->
 
 hasht_get(HashT, I) ->
     hasht:fetch(I, HashT).
+
+hashtl_get(HashT, I) ->
+    I = hashtl:fetch(I, HashT).
 
 get(_, _, 0) ->
     ok;
@@ -196,6 +205,9 @@ test(N) ->
     %% hash table
     {S12, D12} = timer:tc(integer_key, set, [fun hasht_set/3, data12(N), N]),
     {G12, _} = timer:tc(integer_key, get, [fun hasht_get/2, D12, N]),
+    %% hash table layered
+    {S13, D13} = timer:tc(integer_key, set, [fun hashtl_set/3, data13(N), N]),
+    {G13, _} = timer:tc(integer_key, get, [fun hashtl_get/2, D13, N]),
     %% results
     [
         #result{name = "array (fixed)",       get =  G1, set =  S1},
@@ -209,6 +221,7 @@ test(N) ->
         #result{name = "ets (set)",           get =  G9, set =  S9},
         #result{name = "process dictionary",  get = G10, set = S10},
         #result{name = "ets x10 (set)",       get = erlang:round(G11 / 10.0)},
-        #result{name = "hasht",               get = G12, set = S12}
+        #result{name = "hasht",               get = G12, set = S12},
+        #result{name = "hashtl",              get = G13, set = S13}
     ].
 

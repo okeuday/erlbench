@@ -54,6 +54,9 @@ data9(_) ->
 data10(N) ->
     hasht:new(N).
 
+data11(N) ->
+    hashtl:new(N).
+
 gb_trees_set(Tree, String, Value) ->
     gb_trees:enter(String, Value, Tree).
 
@@ -82,6 +85,9 @@ pdict_set(_, String, Value) ->
 hasht_set(HashT, String, Value) ->
     hasht:store(String, Value, HashT).
 
+hashtl_set(HashT, String, Value) ->
+    hashtl:store(String, Value, HashT).
+
 gb_trees_get(Tree, String) ->
     gb_trees:get(String, Tree).
 
@@ -108,6 +114,9 @@ pdict_get(_, String) ->
 
 hasht_get(HashT, String) ->
     hasht:fetch(String, HashT).
+
+hashtl_get(HashT, String) ->
+    empty = hashtl:fetch(String, HashT).
 
 get(_, _, []) ->
     ok;
@@ -177,6 +186,9 @@ test(N) ->
     %% hash table
     {S10, D10} = timer:tc(string_key, set, [fun hasht_set/3, data10(N), Words]),
     {G10, _} = timer:tc(string_key, get, [fun hasht_get/2, D10, Words]),
+    %% hash table layered
+    {S11, D11} = timer:tc(string_key, set, [fun hashtl_set/3, data11(N), Words]),
+    {G11, _} = timer:tc(string_key, get, [fun hashtl_get/2, D11, Words]),
     %% results
     [
         #result{name = "gb_trees",            get =  G1, set =  S1},
@@ -188,7 +200,8 @@ test(N) ->
         #result{name = "ets (set)",           get =  G7, set =  S7},
         #result{name = "process dictionary",  get =  G8, set =  S8},
         #result{name = "ets x10 (set)",       get = erlang:round(G9 / 10.0)},
-        #result{name = "hasht",               get = G10, set = S10}
+        #result{name = "hasht",               get = G10, set = S10},
+        #result{name = "hashtl",              get = G11, set = S11}
     ].
 
 read_wordlist() ->
