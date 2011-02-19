@@ -24,32 +24,35 @@
 
 -define(WORDLIST, "/usr/share/dict/words").
 
-data1() ->
+data1(_) ->
     gb_trees:empty().
 
-data2() ->
+data2(_) ->
     rbdict:new().
 
-data3() ->
+data3(_) ->
     aadict:new().
 
-data4() ->
+data4(_) ->
     orddict:new().
 
-data5() ->
+data5(_) ->
     dict:new().
 
-data6() ->
+data6(_) ->
     trie:new().
 
-data7() ->
+data7(_) ->
     ets:new(ets_test_1, []).
 
-data8() ->
+data8(_) ->
     undefined.
 
-data9() ->
+data9(_) ->
     ets:new(ets_test_2, [{read_concurrency, true}]).
+
+data10(N) ->
+    hasht:new(N).
 
 gb_trees_set(Tree, String, Value) ->
     gb_trees:enter(String, Value, Tree).
@@ -76,6 +79,9 @@ ets_set(Tid, String, Value) ->
 pdict_set(_, String, Value) ->
     erlang:put(String, Value).
 
+hasht_set(HashT, String, Value) ->
+    hasht:store(String, Value, HashT).
+
 gb_trees_get(Tree, String) ->
     gb_trees:get(String, Tree).
 
@@ -99,6 +105,9 @@ ets_get(Tid, String) ->
 
 pdict_get(_, String) ->
     erlang:get(String).
+
+hasht_get(HashT, String) ->
+    hasht:fetch(String, HashT).
 
 get(_, _, []) ->
     ok;
@@ -137,55 +146,49 @@ test(N) ->
     Words = array:to_list(array:resize(N, read_wordlist())),
 
     %% gb_trees
-    {S1, D1} = timer:tc(string_key, set, [fun gb_trees_set/3, data1(), Words]),
+    {S1, D1} = timer:tc(string_key, set, [fun gb_trees_set/3, data1(N), Words]),
     {G1, _} = timer:tc(string_key, get, [fun gb_trees_get/2, D1, Words]),
     %% rbdict
-    {S2, D2} = timer:tc(string_key, set, [fun rbdict_set/3, data2(), Words]),
+    {S2, D2} = timer:tc(string_key, set, [fun rbdict_set/3, data2(N), Words]),
     {G2, _} = timer:tc(string_key, get, [fun rbdict_get/2, D2, Words]),
     %% aadict
-    {S3, D3} = timer:tc(string_key, set, [fun aadict_set/3, data3(), Words]),
+    {S3, D3} = timer:tc(string_key, set, [fun aadict_set/3, data3(N), Words]),
     {G3, _} = timer:tc(string_key, get, [fun aadict_get/2, D3, Words]),
     %% orddict
-    {S4, D4} = timer:tc(string_key, set, [fun orddict_set/3, data4(), Words]),
-    {G4, _} = timer:tc(string_key, get, [fun orddict_get/2, D4, Words]),
+    %{S4, D4} = timer:tc(string_key, set, [fun orddict_set/3, data4(N), Words]),
+    %{G4, _} = timer:tc(string_key, get, [fun orddict_get/2, D4, Words]),
     %% dict
-    {S5, D5} = timer:tc(string_key, set, [fun dict_set/3, data5(), Words]),
+    {S5, D5} = timer:tc(string_key, set, [fun dict_set/3, data5(N), Words]),
     {G5, _} = timer:tc(string_key, get, [fun dict_get/2, D5, Words]),
     %% trie
-    {S6, D6} = timer:tc(string_key, set, [fun trie_set/3, data6(), Words]),
+    {S6, D6} = timer:tc(string_key, set, [fun trie_set/3, data6(N), Words]),
     {G6, _} = timer:tc(string_key, get, [fun trie_get/2, D6, Words]),
     %% ets
-    {S7, D7} = timer:tc(string_key, set, [fun ets_set/3, data7(), Words]),
+    {S7, D7} = timer:tc(string_key, set, [fun ets_set/3, data7(N), Words]),
     {G7, _} = timer:tc(string_key, get, [fun ets_get/2, D7, Words]),
     ets:delete(D7),
     %% process dictionary
-    {S8, D8} = timer:tc(string_key, set, [fun pdict_set/3, data8(), Words]),
+    {S8, D8} = timer:tc(string_key, set, [fun pdict_set/3, data8(N), Words]),
     {G8, _} = timer:tc(string_key, get, [fun pdict_get/2, D8, Words]),
     %% ets with 10 concurrent accesses
-    {_, D9} = timer:tc(string_key, set, [fun ets_set/3, data9(), Words]),
+    {_, D9} = timer:tc(string_key, set, [fun ets_set/3, data9(N), Words]),
     {G9, _} = timer:tc(string_key, get_concurrent, [10, [fun ets_get/2, D9, Words]]),
     ets:delete(D9),
+    %% hash table
+    {S10, D10} = timer:tc(string_key, set, [fun hasht_set/3, data10(N), Words]),
+    {G10, _} = timer:tc(string_key, get, [fun hasht_get/2, D10, Words]),
     %% results
-    %io:format("N == ~8w~n", [N]),
-    %io:format("gb_trees:         get: ~8w µs, set: ~8w µs~n", [G1, S1]),
-    %io:format("rbdict:           get: ~8w µs, set: ~8w µs~n", [G2, S2]),
-    %io:format("aadict:           get: ~8w µs, set: ~8w µs~n", [G3, S3]),
-    %io:format("orddict:          get: ~8w µs, set: ~8w µs~n", [G4, S4]),
-    %io:format("dict:             get: ~8w µs, set: ~8w µs~n", [G5, S5]),
-    %io:format("trie:             get: ~8w µs, set: ~8w µs~n", [G6, S6]),
-    %io:format("ets (set):        get: ~8w µs, set: ~8w µs~n", [G7, S7]),
-    %io:format("process dict:     get: ~8w µs, set: ~8w µs~n", [G8, S8]),
-    %io:format("ets x10 (set):    get: ~8w µs~n", [erlang:round(G9 / 10.0)]),
     [
         #result{name = "gb_trees",            get =  G1, set =  S1},
         #result{name = "rbdict",              get =  G2, set =  S2},
         #result{name = "aadict",              get =  G3, set =  S3},
-        #result{name = "orddict",             get =  G4, set =  S4},
+        %#result{name = "orddict",             get =  G4, set =  S4},
         #result{name = "dict",                get =  G5, set =  S5},
         #result{name = "trie",                get =  G6, set =  S6},
         #result{name = "ets (set)",           get =  G7, set =  S7},
         #result{name = "process dictionary",  get =  G8, set =  S8},
-        #result{name = "ets x10 (set)",       get = erlang:round(G9 / 10.0)}
+        #result{name = "ets x10 (set)",       get = erlang:round(G9 / 10.0)},
+        #result{name = "hasht",               get = G10, set = S10}
     ].
 
 read_wordlist() ->

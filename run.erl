@@ -8,7 +8,7 @@
 -include("erlbench.hrl").
 
 % parameters for the runs
--define(TESTS, [list_traversal, string_key, integer_key]).
+-define(TESTS, [string_key, integer_key, list_traversal]).
 -define(RUNS, 10).
 -define(COUNTS, [1000, 10000, 50000]).
 

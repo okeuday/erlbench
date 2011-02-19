@@ -58,6 +58,9 @@ data10(_) ->
 data11(_) ->
     ets:new(ets_test_2, [{read_concurrency, true}]).
 
+data12(N) ->
+    hasht:new(N).
+
 array_set(Array, I, Value) ->
     %% array indexing starts at 0
     array:set(I - 1, Value, Array).
@@ -88,6 +91,9 @@ ets_set(Tid, I, Value) ->
 pdict_set(_, I, Value) ->
     erlang:put(I, Value).
 
+hasht_set(HashT, I, Value) ->
+    hasht:store(I, Value, HashT).
+
 array_get(Array, I) ->
     array:get(I - 1, Array).
 
@@ -114,6 +120,9 @@ ets_get(Tid, I) ->
 
 pdict_get(_, I) ->
     erlang:get(I).
+
+hasht_get(HashT, I) ->
+    hasht:fetch(I, HashT).
 
 get(_, _, 0) ->
     ok;
@@ -168,8 +177,8 @@ test(N) ->
     {S6, D6} = timer:tc(integer_key, set, [fun aadict_set/3, data6(N), N]),
     {G6, _} = timer:tc(integer_key, get, [fun aadict_get/2, D6, N]),
     %% orddict
-    {S7, D7} = timer:tc(integer_key, set, [fun orddict_set/3, data7(N), N]),
-    {G7, _} = timer:tc(integer_key, get, [fun orddict_get/2, D7, N]),
+    %{S7, D7} = timer:tc(integer_key, set, [fun orddict_set/3, data7(N), N]),
+    %{G7, _} = timer:tc(integer_key, get, [fun orddict_get/2, D7, N]),
     %% dict
     {S8, D8} = timer:tc(integer_key, set, [fun dict_set/3, data8(N), N]),
     {G8, _} = timer:tc(integer_key, get, [fun dict_get/2, D8, N]),
@@ -184,19 +193,10 @@ test(N) ->
     {_, D11} = timer:tc(integer_key, set, [fun ets_set/3, data11(N), N]),
     {G11, _} = timer:tc(integer_key, get_concurrent, [10, [fun ets_get/2, D11, N]]),
     ets:delete(D11),
+    %% hash table
+    {S12, D12} = timer:tc(integer_key, set, [fun hasht_set/3, data12(N), N]),
+    {G12, _} = timer:tc(integer_key, get, [fun hasht_get/2, D12, N]),
     %% results
-    %io:format("N == ~8w~n", [N]),
-    %io:format("array (fixed):    get: ~8w µs, set: ~8w µs~n", [G1 , S1]),
-    %io:format("array (dynamic):  get: ~8w µs, set: ~8w µs~n", [G2 , S2]),
-    %io:format("tuple:            get: ~8w µs, set: ~8w µs~n", [G3 , S3]),
-    %io:format("gb_trees:         get: ~8w µs, set: ~8w µs~n", [G4 , S4]),
-    %io:format("rbdict:           get: ~8w µs, set: ~8w µs~n", [G5 , S5]),
-    %io:format("aadict:           get: ~8w µs, set: ~8w µs~n", [G6 , S6]),
-    %io:format("orddict:          get: ~8w µs, set: ~8w µs~n", [G7 , S7]),
-    %io:format("dict:             get: ~8w µs, set: ~8w µs~n", [G8 , S8]),
-    %io:format("ets (set):        get: ~8w µs, set: ~8w µs~n", [G9 , S9]),
-    %io:format("process dict:     get: ~8w µs, set: ~8w µs~n", [G10 , S10]),
-    %io:format("ets x10 (set):    get: ~8w µs~n", [erlang:round(G11 / 10.0)]),
     [
         #result{name = "array (fixed)",       get =  G1, set =  S1},
         #result{name = "array (dynamic)",     get =  G2, set =  S2},
@@ -204,10 +204,11 @@ test(N) ->
         #result{name = "gb_trees",            get =  G4, set =  S4},
         #result{name = "rbdict",              get =  G5, set =  S5},
         #result{name = "aadict",              get =  G6, set =  S6},
-        #result{name = "orddict",             get =  G7, set =  S7},
+        %#result{name = "orddict",             get =  G7, set =  S7},
         #result{name = "dict",                get =  G8, set =  S8},
         #result{name = "ets (set)",           get =  G9, set =  S9},
         #result{name = "process dictionary",  get = G10, set = S10},
-        #result{name = "ets x10 (set)",       get = erlang:round(G11 / 10.0)}
+        #result{name = "ets x10 (set)",       get = erlang:round(G11 / 10.0)},
+        #result{name = "hasht",               get = G12, set = S12}
     ].
 
