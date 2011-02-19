@@ -55,6 +55,15 @@ data10(N) ->
     hasht:new(N).
 
 data11(N) ->
+    hashtl2:new(N).
+
+data12(N) ->
+    hashtl3:new(N).
+
+data13(N) ->
+    hashtl4:new(N).
+
+data14(N) ->
     hashtl:new(N).
 
 gb_trees_set(Tree, String, Value) ->
@@ -85,6 +94,15 @@ pdict_set(_, String, Value) ->
 hasht_set(HashT, String, Value) ->
     hasht:store(String, Value, HashT).
 
+hashtl2_set(HashT, String, Value) ->
+    hashtl2:store(String, Value, HashT).
+
+hashtl3_set(HashT, String, Value) ->
+    hashtl3:store(String, Value, HashT).
+
+hashtl4_set(HashT, String, Value) ->
+    hashtl4:store(String, Value, HashT).
+
 hashtl_set(HashT, String, Value) ->
     hashtl:store(String, Value, HashT).
 
@@ -114,6 +132,15 @@ pdict_get(_, String) ->
 
 hasht_get(HashT, String) ->
     hasht:fetch(String, HashT).
+
+hashtl2_get(HashT, String) ->
+    empty = hashtl2:fetch(String, HashT).
+
+hashtl3_get(HashT, String) ->
+    empty = hashtl3:fetch(String, HashT).
+
+hashtl4_get(HashT, String) ->
+    empty = hashtl4:fetch(String, HashT).
 
 hashtl_get(HashT, String) ->
     empty = hashtl:fetch(String, HashT).
@@ -187,8 +214,17 @@ test(N) ->
     {S10, D10} = timer:tc(string_key, set, [fun hasht_set/3, data10(N), Words]),
     {G10, _} = timer:tc(string_key, get, [fun hasht_get/2, D10, Words]),
     %% hash table layered
-    {S11, D11} = timer:tc(string_key, set, [fun hashtl_set/3, data11(N), Words]),
-    {G11, _} = timer:tc(string_key, get, [fun hashtl_get/2, D11, Words]),
+    {S11, D11} = timer:tc(string_key, set, [fun hashtl2_set/3, data11(N), Words]),
+    {G11, _} = timer:tc(string_key, get, [fun hashtl2_get/2, D11, Words]),
+    %% hash table layered
+    {S12, D12} = timer:tc(string_key, set, [fun hashtl3_set/3, data12(N), Words]),
+    {G12, _} = timer:tc(string_key, get, [fun hashtl3_get/2, D12, Words]),
+    %% hash table layered
+    {S13, D13} = timer:tc(string_key, set, [fun hashtl4_set/3, data13(N), Words]),
+    {G13, _} = timer:tc(string_key, get, [fun hashtl4_get/2, D13, Words]),
+    %% hash table layered
+    {S14, D14} = timer:tc(string_key, set, [fun hashtl_set/3, data14(N), Words]),
+    {G14, _} = timer:tc(string_key, get, [fun hashtl_get/2, D14, Words]),
     %% results
     [
         #result{name = "gb_trees",            get =  G1, set =  S1},
@@ -201,7 +237,10 @@ test(N) ->
         #result{name = "process dictionary",  get =  G8, set =  S8},
         #result{name = "ets x10 (set)",       get = erlang:round(G9 / 10.0)},
         #result{name = "hasht",               get = G10, set = S10},
-        #result{name = "hashtl",              get = G11, set = S11}
+        #result{name = "hashtl2",             get = G11, set = S11},
+        #result{name = "hashtl3",             get = G12, set = S12},
+        #result{name = "hashtl4",             get = G13, set = S13},
+        #result{name = "hashtl",              get = G14, set = S14}
     ].
 
 read_wordlist() ->
