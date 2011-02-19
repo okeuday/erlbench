@@ -57,7 +57,7 @@
          find/2,
          store/3]).
 
--define(PRIMES, [509, 1021, 2039, 4093, 8191, 16381, 32749, 65521]).
+-define(PRIMES, [127, 251, 509, 1021, 2039, 4093, 8191, 16381, 32749, 65521]).
 
 %%%------------------------------------------------------------------------
 %%% External interface functions
@@ -96,14 +96,32 @@ create([]) ->
 create([I | Is]) ->
     erlang:make_tuple(I + 1, create(Is)).
 
-store_key([I], KV, Bins) ->
-    erlang:setelement(I, Bins, [KV | erlang:element(I, Bins)]);
+store_key({I1}, KV, Bins1) ->
+    erlang:setelement(I1, Bins1, [KV | erlang:element(I1, Bins1)]);
 
-store_key([I | Is], KV, Bins) ->
-    erlang:setelement(I, Bins, store_key(Is, KV, erlang:element(I, Bins))).
+store_key({I1, I2}, KV, Bins1) ->
+    Bins2 = erlang:element(I1, Bins1),
+    erlang:setelement(I1, Bins1,
+    erlang:setelement(I2, Bins2, [KV | erlang:element(I2, Bins2)]));
 
-fetch_key([I], Bins, Key) ->
-    [H | _] = L = erlang:element(I, Bins),
+store_key({I1, I2, I3}, KV, Bins1) ->
+    Bins2 = erlang:element(I1, Bins1),
+    Bins3 = erlang:element(I2, Bins2),
+    erlang:setelement(I1, Bins1,
+    erlang:setelement(I2, Bins2,
+    erlang:setelement(I3, Bins3, [KV | erlang:element(I3, Bins3)])));
+
+store_key({I1, I2, I3, I4}, KV, Bins1) ->
+    Bins2 = erlang:element(I1, Bins1),
+    Bins3 = erlang:element(I2, Bins2),
+    Bins4 = erlang:element(I3, Bins3),
+    erlang:setelement(I1, Bins1,
+    erlang:setelement(I2, Bins2,
+    erlang:setelement(I3, Bins3,
+    erlang:setelement(I4, Bins4, [KV | erlang:element(I4, Bins4)])))).
+
+fetch_key({I1}, Bins1, Key) ->
+    [H | _] = L = erlang:element(I1, Bins1),
     if
         erlang:element(1, H) == Key ->
             erlang:element(2, H);
@@ -112,11 +130,44 @@ fetch_key([I], Bins, Key) ->
             Value
     end;
 
-fetch_key([I | Is], Bins, Key) ->
-    fetch_key(Is, erlang:element(I, Bins), Key).
+fetch_key({I1, I2}, Bins1, Key) ->
+    [H | _] = L = erlang:element(I2,
+                  erlang:element(I1, Bins1)),
+    if
+        erlang:element(1, H) == Key ->
+            erlang:element(2, H);
+        true ->
+            {Key, Value} = lists:keyfind(Key, 1, L),
+            Value
+    end;
 
-find_key([I], Bins, Key) ->
-    case erlang:element(I, Bins) of
+fetch_key({I1, I2, I3}, Bins1, Key) ->
+    [H | _] = L = erlang:element(I3,
+                  erlang:element(I2,
+                  erlang:element(I1, Bins1))),
+    if
+        erlang:element(1, H) == Key ->
+            erlang:element(2, H);
+        true ->
+            {Key, Value} = lists:keyfind(Key, 1, L),
+            Value
+    end;
+
+fetch_key({I1, I2, I3, I4}, Bins1, Key) ->
+    [H | _] = L = erlang:element(I4,
+                  erlang:element(I3,
+                  erlang:element(I2,
+                  erlang:element(I1, Bins1)))),
+    if
+        erlang:element(1, H) == Key ->
+            erlang:element(2, H);
+        true ->
+            {Key, Value} = lists:keyfind(Key, 1, L),
+            Value
+    end.
+
+find_key({I1}, Bins1, Key) ->
+    case erlang:element(I1, Bins1) of
         [] ->
             error;
         [{Key, Value} | _] ->
@@ -130,48 +181,112 @@ find_key([I], Bins, Key) ->
             end
     end;
 
-find_key([I | Is], Bins, Key) ->
-    find_key(Is, erlang:element(I, Bins), Key).
+find_key({I1, I2}, Bins1, Key) ->
+    case erlang:element(I2,
+         erlang:element(I1, Bins1)) of
+        [] ->
+            error;
+        [{Key, Value} | _] ->
+            {ok, Value};
+        L ->
+            case lists:keyfind(Key, 1, L) of
+                error ->
+                    error;
+                {Key, Value} ->
+                    {ok, Value}
+            end
+    end;
+
+find_key({I1, I2, I3}, Bins1, Key) ->
+    case erlang:element(I3,
+         erlang:element(I2,
+         erlang:element(I1, Bins1))) of
+        [] ->
+            error;
+        [{Key, Value} | _] ->
+            {ok, Value};
+        L ->
+            case lists:keyfind(Key, 1, L) of
+                error ->
+                    error;
+                {Key, Value} ->
+                    {ok, Value}
+            end
+    end;
+
+find_key({I1, I2, I3, I4}, Bins1, Key) ->
+    case erlang:element(I4,
+         erlang:element(I3,
+         erlang:element(I2,
+         erlang:element(I1, Bins1)))) of
+        [] ->
+            error;
+        [{Key, Value} | _] ->
+            {ok, Value};
+        L ->
+            case lists:keyfind(Key, 1, L) of
+                error ->
+                    error;
+                {Key, Value} ->
+                    {ok, Value}
+            end
+    end.
+
+hash_key(127, Key) ->
+    {erlang:phash2(Key, 127) + 1};
+
+hash_key(251, Key) ->
+    Hash = erlang:phash2(Key, 251),
+    <<I1:4, I2:4>> = <<Hash:8>>,
+    {I1 + 1, I2 + 1};
 
 hash_key(509, Key) ->
     Hash = erlang:phash2(Key, 509),
     <<I1:4, I2:5>> = <<Hash:9>>,
-    [I1 + 1, I2 + 1];
+    {I1 + 1, I2 + 1};
 
 hash_key(1021, Key) ->
     Hash = erlang:phash2(Key, 1021),
     <<I1:3, I2:3, I3:4>> = <<Hash:10>>,
-    [I1 + 1, I2 + 1, I3 + 1];
+    {I1 + 1, I2 + 1, I3 + 1};
 
 hash_key(2039, Key) ->
     Hash = erlang:phash2(Key, 2039),
     <<I1:3, I2:4, I3:4>> = <<Hash:11>>,
-    [I1 + 1, I2 + 1, I3 + 1];
+    {I1 + 1, I2 + 1, I3 + 1};
 
 hash_key(4093, Key) ->
     Hash = erlang:phash2(Key, 4093),
     <<I1:4, I2:4, I3:4>> = <<Hash:12>>,
-    [I1 + 1, I2 + 1, I3 + 1];
+    {I1 + 1, I2 + 1, I3 + 1};
 
 hash_key(8191, Key) ->
     Hash = erlang:phash2(Key, 8191),
     <<I1:4, I2:4, I3:5>> = <<Hash:13>>,
-    [I1 + 1, I2 + 1, I3 + 1];
+    {I1 + 1, I2 + 1, I3 + 1};
 
 hash_key(16381, Key) ->
     Hash = erlang:phash2(Key, 16381),
     <<I1:4, I2:5, I3:5>> = <<Hash:14>>,
-    [I1 + 1, I2 + 1, I3 + 1];
+    {I1 + 1, I2 + 1, I3 + 1};
 
 hash_key(32749, Key) ->
     Hash = erlang:phash2(Key, 32749),
     <<I1:3, I2:4, I3:4, I4:4>> = <<Hash:15>>,
-    [I1 + 1, I2 + 1, I3 + 1, I4 + 1];
+    {I1 + 1, I2 + 1, I3 + 1, I4 + 1};
 
 hash_key(65521, Key) ->
     Hash = erlang:phash2(Key, 65521),
     <<I1:4, I2:4, I3:4, I4:4>> = <<Hash:16>>,
-    [I1 + 1, I2 + 1, I3 + 1, I4 + 1].
+    {I1 + 1, I2 + 1, I3 + 1, I4 + 1}.
+
+hash_max(127) ->
+    <<I1:7>> = <<127:7>>,
+    [I1];
+
+hash_max(251) ->
+    <<I1:4, I2:4>> = <<255:8>>,
+    [I1, I2];
 
 hash_max(509) ->
     <<I1:4, I2:5>> = <<511:9>>,
