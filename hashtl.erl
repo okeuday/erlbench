@@ -103,12 +103,11 @@ store_key([I | Is], KV, Bins) ->
     erlang:setelement(I, Bins, store_key(Is, KV, erlang:element(I, Bins))).
 
 fetch_key([I], Bins, Key) ->
-    case erlang:element(I, Bins) of
-        [{Key, Value} | _] ->
-            Value;
-        [_, {Key, Value} | _] ->
-            Value;
-        L ->
+    [H | _] = L = erlang:element(I, Bins),
+    if
+        erlang:element(1, H) == Key ->
+            erlang:element(2, H);
+        true ->
             {Key, Value} = lists:keyfind(Key, 1, L),
             Value
     end;
@@ -121,8 +120,6 @@ find_key([I], Bins, Key) ->
         [] ->
             error;
         [{Key, Value} | _] ->
-            {ok, Value};
-        [_, {Key, Value} | _] ->
             {ok, Value};
         L ->
             case lists:keyfind(Key, 1, L) of
