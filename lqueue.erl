@@ -7,7 +7,9 @@
 %%% A queue implemented as a single list that is reversed a minimal
 %%% number of times.  Usage patterns that rarely alternate between the
 %%% getting/putting should experience more efficiency.  A subset of the
-%%% queue module interface functions are implemented.
+%%% queue module interface functions are implemented.  No improvement
+%%% better than the queue module seen yet, and the queue implementation is
+%%% very good, so it is likely to always be close.
 %%% @end
 %%%
 %%% BSD LICENSE
