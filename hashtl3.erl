@@ -3,7 +3,7 @@
 %%%
 %%%------------------------------------------------------------------------
 %%% @doc
-%%% ==Simple Hash Table Implementation.==
+%%% ==Hash Table Layered Implementation.==
 %%% @end
 %%%
 %%% BSD LICENSE
@@ -47,7 +47,7 @@
 %%% @version 0.0.1 {@date} {@time}
 %%%------------------------------------------------------------------------
 
--module(hasht).
+-module(hashtl3).
 -author('mjtruog [at] gmail (dot) com').
 
 %% external interface
@@ -57,7 +57,7 @@
          find/2,
          store/3]).
 
--define(PRIMES, [509, 1021, 2053, 4093, 8191, 16381, 32771, 65521]).
+-define(PRIMES, [509, 1021, 2039, 4093, 8191, 16381, 32749, 65521]).
 
 %%%------------------------------------------------------------------------
 %%% External interface functions
@@ -65,7 +65,7 @@
 
 new() ->
     [Size | _] = ?PRIMES,
-    {Size, erlang:make_tuple(Size, [])}.
+    {Size, create(hash_max(Size))}.
 
 new(Entries)
     when is_number(Entries) ->
@@ -75,15 +75,34 @@ new(Entries)
         [] ->
             lists:last(?PRIMES)
     end,
-    {Size, erlang:make_tuple(Size, [])}.
+    {Size, create(hash_max(Size))}.
 
 store(Key, Value, {Size, Bins}) ->
-    I = erlang:phash2(Key, Size) + 1,
-    {Size, erlang:setelement(I, Bins, [{Key, Value} |
-                                       erlang:element(I, Bins)])}.
+    {Size, store_key(hash_key(Size, Key), {Key, Value}, Bins)}.
 
 fetch(Key, {Size, Bins}) ->
-    I = erlang:phash2(Key, Size) + 1,
+    fetch_key(hash_key(Size, Key), Bins, Key).
+
+find(Key, {Size, Bins}) ->
+    find_key(hash_key(Size, Key), Bins, Key).
+
+%%%------------------------------------------------------------------------
+%%% Private functions
+%%%------------------------------------------------------------------------
+
+create([]) ->
+    [];
+
+create([I | Is]) ->
+    erlang:make_tuple(I + 1, create(Is)).
+
+store_key([I], KV, Bins) ->
+    erlang:setelement(I, Bins, [KV | erlang:element(I, Bins)]);
+
+store_key([I | Is], KV, Bins) ->
+    erlang:setelement(I, Bins, store_key(Is, KV, erlang:element(I, Bins))).
+
+fetch_key([I], Bins, Key) ->
     case erlang:element(I, Bins) of
         [{Key, Value} | _] ->
             Value;
@@ -92,10 +111,12 @@ fetch(Key, {Size, Bins}) ->
         L ->
             {Key, Value} = lists:keyfind(Key, 1, L),
             Value
-    end.
+    end;
 
-find(Key, {Size, Bins}) ->
-    I = erlang:phash2(Key, Size) + 1,
+fetch_key([I | Is], Bins, Key) ->
+    fetch_key(Is, erlang:element(I, Bins), Key).
+
+find_key([I], Bins, Key) ->
     case erlang:element(I, Bins) of
         [] ->
             error;
@@ -110,9 +131,80 @@ find(Key, {Size, Bins}) ->
                 {Key, Value} ->
                     {ok, Value}
             end
-    end.
+    end;
 
-%%%------------------------------------------------------------------------
-%%% Private functions
-%%%------------------------------------------------------------------------
+find_key([I | Is], Bins, Key) ->
+    find_key(Is, erlang:element(I, Bins), Key).
+
+hash_key(509, Key) ->
+    Hash = erlang:phash2(Key, 509),
+    <<I1:3, I2:3, I3:3>> = <<Hash:9>>,
+    [I1 + 1, I2 + 1, I3 + 1];
+
+hash_key(1021, Key) ->
+    Hash = erlang:phash2(Key, 1021),
+    <<I1:3, I2:3, I3:4>> = <<Hash:10>>,
+    [I1 + 1, I2 + 1, I3 + 1];
+
+hash_key(2039, Key) ->
+    Hash = erlang:phash2(Key, 2039),
+    <<I1:3, I2:4, I3:4>> = <<Hash:11>>,
+    [I1 + 1, I2 + 1, I3 + 1];
+
+hash_key(4093, Key) ->
+    Hash = erlang:phash2(Key, 4093),
+    <<I1:4, I2:4, I3:4>> = <<Hash:12>>,
+    [I1 + 1, I2 + 1, I3 + 1];
+
+hash_key(8191, Key) ->
+    Hash = erlang:phash2(Key, 8191),
+    <<I1:4, I2:4, I3:5>> = <<Hash:13>>,
+    [I1 + 1, I2 + 1, I3 + 1];
+
+hash_key(16381, Key) ->
+    Hash = erlang:phash2(Key, 16381),
+    <<I1:4, I2:5, I3:5>> = <<Hash:14>>,
+    [I1 + 1, I2 + 1, I3 + 1];
+
+hash_key(32749, Key) ->
+    Hash = erlang:phash2(Key, 32749),
+    <<I1:5, I2:5, I3:5>> = <<Hash:15>>,
+    [I1 + 1, I2 + 1, I3 + 1];
+
+hash_key(65521, Key) ->
+    Hash = erlang:phash2(Key, 65521),
+    <<I1:5, I2:5, I3:6>> = <<Hash:16>>,
+    [I1 + 1, I2 + 1, I3 + 1].
+
+hash_max(509) ->
+    <<I1:3, I2:3, I3:3>> = <<511:9>>,
+    [I1, I2, I3];
+
+hash_max(1021) ->
+    <<I1:3, I2:3, I3:4>> = <<1023:10>>,
+    [I1, I2, I3];
+
+hash_max(2039) ->
+    <<I1:3, I2:4, I3:4>> = <<2047:11>>,
+    [I1, I2, I3];
+
+hash_max(4093) ->
+    <<I1:4, I2:4, I3:4>> = <<4095:12>>,
+    [I1, I2, I3];
+
+hash_max(8191) ->
+    <<I1:4, I2:4, I3:5>> = <<8191:13>>,
+    [I1, I2, I3];
+
+hash_max(16381) ->
+    <<I1:4, I2:5, I3:5>> = <<16383:14>>,
+    [I1, I2, I3];
+
+hash_max(32749) ->
+    <<I1:5, I2:5, I3:5>> = <<32767:15>>,
+    [I1, I2, I3];
+
+hash_max(65521) ->
+    <<I1:5, I2:5, I3:6>> = <<65535:16>>,
+    [I1, I2, I3].
 
