@@ -232,51 +232,68 @@ find_key({I1, I2, I3, I4}, Bins1, Key) ->
             end
     end.
 
+-compile({inline, [{mod,2},{hash,2},{hash_key,2},{hash_max,1}]}).
+
+mod(X, Y)
+    when X > 0 ->
+    X rem Y;
+mod(X, Y)
+    when X < 0 ->
+    Y + X rem Y;
+mod(0, _) ->
+    0.
+
+hash(Key, Value)
+    when is_integer(Key) ->
+    mod(Key, Value);
+hash(Key, Value) ->
+    erlang:phash2(Key, Value).
+
 hash_key(127, Key) ->
-    {erlang:phash2(Key, 127) + 1};
+    {hash(Key, 127) + 1};
 
 hash_key(251, Key) ->
-    Hash = erlang:phash2(Key, 251),
+    Hash = hash(Key, 251),
     <<I1:4, I2:4>> = <<Hash:8>>,
     {I1 + 1, I2 + 1};
 
 hash_key(509, Key) ->
-    Hash = erlang:phash2(Key, 509),
+    Hash = hash(Key, 509),
     <<I1:4, I2:5>> = <<Hash:9>>,
     {I1 + 1, I2 + 1};
 
 hash_key(1021, Key) ->
-    Hash = erlang:phash2(Key, 1021),
+    Hash = hash(Key, 1021),
     <<I1:3, I2:3, I3:4>> = <<Hash:10>>,
     {I1 + 1, I2 + 1, I3 + 1};
 
 hash_key(2039, Key) ->
-    Hash = erlang:phash2(Key, 2039),
+    Hash = hash(Key, 2039),
     <<I1:3, I2:4, I3:4>> = <<Hash:11>>,
     {I1 + 1, I2 + 1, I3 + 1};
 
 hash_key(4093, Key) ->
-    Hash = erlang:phash2(Key, 4093),
+    Hash = hash(Key, 4093),
     <<I1:4, I2:4, I3:4>> = <<Hash:12>>,
     {I1 + 1, I2 + 1, I3 + 1};
 
 hash_key(8191, Key) ->
-    Hash = erlang:phash2(Key, 8191),
+    Hash = hash(Key, 8191),
     <<I1:4, I2:4, I3:5>> = <<Hash:13>>,
     {I1 + 1, I2 + 1, I3 + 1};
 
 hash_key(16381, Key) ->
-    Hash = erlang:phash2(Key, 16381),
+    Hash = hash(Key, 16381),
     <<I1:4, I2:5, I3:5>> = <<Hash:14>>,
     {I1 + 1, I2 + 1, I3 + 1};
 
 hash_key(32749, Key) ->
-    Hash = erlang:phash2(Key, 32749),
+    Hash = hash(Key, 32749),
     <<I1:3, I2:4, I3:4, I4:4>> = <<Hash:15>>,
     {I1 + 1, I2 + 1, I3 + 1, I4 + 1};
 
 hash_key(65521, Key) ->
-    Hash = erlang:phash2(Key, 65521),
+    Hash = hash(Key, 65521),
     <<I1:4, I2:4, I3:4, I4:4>> = <<Hash:16>>,
     {I1 + 1, I2 + 1, I3 + 1, I4 + 1}.
 

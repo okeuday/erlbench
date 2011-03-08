@@ -233,14 +233,14 @@ test(N) ->
     {S12, D12} = timer:tc(integer_key, set, [fun hasht_set/3, data12(N), N]),
     {G12, _} = timer:tc(integer_key, get, [fun hasht_get/2, D12, N]),
     %% hash table layered
-    {S13, D13} = timer:tc(integer_key, set, [fun hashtl2_set/3, data13(N), N]),
-    {G13, _} = timer:tc(integer_key, get, [fun hashtl2_get/2, D13, N]),
+    %{S13, D13} = timer:tc(integer_key, set, [fun hashtl2_set/3, data13(N), N]),
+    %{G13, _} = timer:tc(integer_key, get, [fun hashtl2_get/2, D13, N]),
     %% hash table layered
-    {S14, D14} = timer:tc(integer_key, set, [fun hashtl3_set/3, data14(N), N]),
-    {G14, _} = timer:tc(integer_key, get, [fun hashtl3_get/2, D14, N]),
+    %{S14, D14} = timer:tc(integer_key, set, [fun hashtl3_set/3, data14(N), N]),
+    %{G14, _} = timer:tc(integer_key, get, [fun hashtl3_get/2, D14, N]),
     %% hash table layered
-    {S15, D15} = timer:tc(integer_key, set, [fun hashtl4_set/3, data15(N), N]),
-    {G15, _} = timer:tc(integer_key, get, [fun hashtl4_get/2, D15, N]),
+    %{S15, D15} = timer:tc(integer_key, set, [fun hashtl4_set/3, data15(N), N]),
+    %{G15, _} = timer:tc(integer_key, get, [fun hashtl4_get/2, D15, N]),
     %% hash table layered
     {S16, D16} = timer:tc(integer_key, set, [fun hashtl_set/3, data16(N), N]),
     {G16, _} = timer:tc(integer_key, get, [fun hashtl_get/2, D16, N]),
@@ -258,9 +258,9 @@ test(N) ->
         #result{name = "process dictionary",  get = G10, set = S10},
         #result{name = "ets x10 (set)",       get = erlang:round(G11 / 10.0)},
         #result{name = "hasht",               get = G12, set = S12},
-        #result{name = "hashtl2",             get = G13, set = S13},
-        #result{name = "hashtl3",             get = G14, set = S14},
-        #result{name = "hashtl4",             get = G15, set = S15},
+        %#result{name = "hashtl2",             get = G13, set = S13},
+        %#result{name = "hashtl3",             get = G14, set = S14},
+        %#result{name = "hashtl4",             get = G15, set = S15},
         #result{name = "hashtl",              get = G16, set = S16}
     ].
 
