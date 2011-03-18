@@ -7,12 +7,12 @@
 
 -include("erlbench.hrl").
 
--define(RUNS, 100).
+-define(RUNS, 10).
 
 % parameters for the runs
 
--define(COUNTS, [1]).
--define(TESTS, [json_decode, json_encode]).
+-define(COUNTS, [100]).
+-define(TESTS, [json_encode, json_decode]).
 
 %-define(COUNTS, [1000, 10000, 50000]).
 %-define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,

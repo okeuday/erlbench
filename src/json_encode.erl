@@ -3,7 +3,7 @@
 
 -module(json_encode).
 
--export([test/1]).
+-export([test/1, run/3]).
 
 -include("erlbench.hrl").
 
@@ -16,7 +16,13 @@
 -define(FILE7, "data/sample4.json").
 -define(FILE8, "data/sample4_pretty.json").
 
-test(_) ->
+run(1, F, A) ->
+    F(A);
+run(N, F, A) ->
+    F(A),
+    run(N - 1, F, A).
+
+test(N) ->
     {ok, FileData1} = file:read_file(?FILE1),
     {ok, FileData2} = file:read_file(?FILE2),
     {ok, FileData3} = file:read_file(?FILE3),
@@ -62,41 +68,73 @@ test(_) ->
     {ok, F7rfc4627Result, _} = rfc4627:decode(FileData7),
     {ok, F8rfc4627Result, _} = rfc4627:decode(FileData8),
 
-    {F1ejson, _} = timer:tc(ejson, encode, [F1ejsonResult]),
-    {F2ejson, _} = timer:tc(ejson, encode, [F2ejsonResult]),
-    {F3ejson, _} = timer:tc(ejson, encode, [F3ejsonResult]),
-    {F4ejson, _} = timer:tc(ejson, encode, [F4ejsonResult]),
-    {F5ejson, _} = timer:tc(ejson, encode, [F5ejsonResult]),
-    {F6ejson, _} = timer:tc(ejson, encode, [F6ejsonResult]),
-    {F7ejson, _} = timer:tc(ejson, encode, [F7ejsonResult]),
-    {F8ejson, _} = timer:tc(ejson, encode, [F8ejsonResult]),
+    {F1ejson, _} = timer:tc(json_encode, run, [N, fun ejson:encode/1,
+                                               F1ejsonResult]),
+    {F2ejson, _} = timer:tc(json_encode, run, [N, fun ejson:encode/1,
+                                               F2ejsonResult]),
+    {F3ejson, _} = timer:tc(json_encode, run, [N, fun ejson:encode/1,
+                                               F3ejsonResult]),
+    {F4ejson, _} = timer:tc(json_encode, run, [N, fun ejson:encode/1,
+                                               F4ejsonResult]),
+    {F5ejson, _} = timer:tc(json_encode, run, [N, fun ejson:encode/1,
+                                               F5ejsonResult]),
+    {F6ejson, _} = timer:tc(json_encode, run, [N, fun ejson:encode/1,
+                                               F6ejsonResult]),
+    {F7ejson, _} = timer:tc(json_encode, run, [N, fun ejson:encode/1,
+                                               F7ejsonResult]),
+    {F8ejson, _} = timer:tc(json_encode, run, [N, fun ejson:encode/1,
+                                               F8ejsonResult]),
 
-    {F1jsx, _} = timer:tc(jsx, term_to_json, [F1jsxResult]),
-    {F2jsx, _} = timer:tc(jsx, term_to_json, [F2jsxResult]),
-    {F3jsx, _} = timer:tc(jsx, term_to_json, [F3jsxResult]),
-    {F4jsx, _} = timer:tc(jsx, term_to_json, [F4jsxResult]),
-    {F5jsx, _} = timer:tc(jsx, term_to_json, [F5jsxResult]),
-    {F6jsx, _} = timer:tc(jsx, term_to_json, [F6jsxResult]),
-    {F7jsx, _} = timer:tc(jsx, term_to_json, [F7jsxResult]),
-    {F8jsx, _} = timer:tc(jsx, term_to_json, [F8jsxResult]),
+    {F1jsx, _} = timer:tc(json_encode, run, [N, fun jsx:term_to_json/1,
+                                             F1jsxResult]),
+    {F2jsx, _} = timer:tc(json_encode, run, [N, fun jsx:term_to_json/1,
+                                             F2jsxResult]),
+    {F3jsx, _} = timer:tc(json_encode, run, [N, fun jsx:term_to_json/1,
+                                             F3jsxResult]),
+    {F4jsx, _} = timer:tc(json_encode, run, [N, fun jsx:term_to_json/1,
+                                             F4jsxResult]),
+    {F5jsx, _} = timer:tc(json_encode, run, [N, fun jsx:term_to_json/1,
+                                             F5jsxResult]),
+    {F6jsx, _} = timer:tc(json_encode, run, [N, fun jsx:term_to_json/1,
+                                             F6jsxResult]),
+    {F7jsx, _} = timer:tc(json_encode, run, [N, fun jsx:term_to_json/1,
+                                             F7jsxResult]),
+    {F8jsx, _} = timer:tc(json_encode, run, [N, fun jsx:term_to_json/1,
+                                             F8jsxResult]),
 
-    {F1mochijson2, _} = timer:tc(mochijson2, encode, [F1mochijson2Result]),
-    {F2mochijson2, _} = timer:tc(mochijson2, encode, [F2mochijson2Result]),
-    {F3mochijson2, _} = timer:tc(mochijson2, encode, [F3mochijson2Result]),
-    {F4mochijson2, _} = timer:tc(mochijson2, encode, [F4mochijson2Result]),
-    {F5mochijson2, _} = timer:tc(mochijson2, encode, [F5mochijson2Result]),
-    {F6mochijson2, _} = timer:tc(mochijson2, encode, [F6mochijson2Result]),
-    {F7mochijson2, _} = timer:tc(mochijson2, encode, [F7mochijson2Result]),
-    {F8mochijson2, _} = timer:tc(mochijson2, encode, [F8mochijson2Result]),
+    {F1mochijson2, _} = timer:tc(json_encode, run, [N, fun mochijson2:encode/1,
+                                                    F1mochijson2Result]),
+    {F2mochijson2, _} = timer:tc(json_encode, run, [N, fun mochijson2:encode/1,
+                                                    F2mochijson2Result]),
+    {F3mochijson2, _} = timer:tc(json_encode, run, [N, fun mochijson2:encode/1,
+                                                    F3mochijson2Result]),
+    {F4mochijson2, _} = timer:tc(json_encode, run, [N, fun mochijson2:encode/1,
+                                                    F4mochijson2Result]),
+    {F5mochijson2, _} = timer:tc(json_encode, run, [N, fun mochijson2:encode/1,
+                                                    F5mochijson2Result]),
+    {F6mochijson2, _} = timer:tc(json_encode, run, [N, fun mochijson2:encode/1,
+                                                    F6mochijson2Result]),
+    {F7mochijson2, _} = timer:tc(json_encode, run, [N, fun mochijson2:encode/1,
+                                                    F7mochijson2Result]),
+    {F8mochijson2, _} = timer:tc(json_encode, run, [N, fun mochijson2:encode/1,
+                                                    F8mochijson2Result]),
 
-    {F1rfc4627, _} = timer:tc(rfc4627, encode, [F1rfc4627Result]),
-    {F2rfc4627, _} = timer:tc(rfc4627, encode, [F2rfc4627Result]),
-    {F3rfc4627, _} = timer:tc(rfc4627, encode, [F3rfc4627Result]),
-    {F4rfc4627, _} = timer:tc(rfc4627, encode, [F4rfc4627Result]),
-    {F5rfc4627, _} = timer:tc(rfc4627, encode, [F5rfc4627Result]),
-    {F6rfc4627, _} = timer:tc(rfc4627, encode, [F6rfc4627Result]),
-    {F7rfc4627, _} = timer:tc(rfc4627, encode, [F7rfc4627Result]),
-    {F8rfc4627, _} = timer:tc(rfc4627, encode, [F8rfc4627Result]),
+    {F1rfc4627, _} = timer:tc(json_encode, run, [N, fun rfc4627:encode/1,
+                                                 F1rfc4627Result]),
+    {F2rfc4627, _} = timer:tc(json_encode, run, [N, fun rfc4627:encode/1,
+                                                 F2rfc4627Result]),
+    {F3rfc4627, _} = timer:tc(json_encode, run, [N, fun rfc4627:encode/1,
+                                                 F3rfc4627Result]),
+    {F4rfc4627, _} = timer:tc(json_encode, run, [N, fun rfc4627:encode/1,
+                                                 F4rfc4627Result]),
+    {F5rfc4627, _} = timer:tc(json_encode, run, [N, fun rfc4627:encode/1,
+                                                 F5rfc4627Result]),
+    {F6rfc4627, _} = timer:tc(json_encode, run, [N, fun rfc4627:encode/1,
+                                                 F6rfc4627Result]),
+    {F7rfc4627, _} = timer:tc(json_encode, run, [N, fun rfc4627:encode/1,
+                                                 F7rfc4627Result]),
+    {F8rfc4627, _} = timer:tc(json_encode, run, [N, fun rfc4627:encode/1,
+                                                 F8rfc4627Result]),
 
     %% results
     [

@@ -29,6 +29,8 @@ BUILT=\
     ebin/list_traversal.beam \
     ebin/lqueue.beam \
     ebin/mochijson2.beam \
+    ebin/mochinum.beam \
+    ebin/nicefloats.beam \
     ebin/queue_in_out.beam \
     ebin/rbdict.beam \
     ebin/rfc4627.beam \
