@@ -7,7 +7,7 @@
 
 -include("erlbench.hrl").
 
--define(RUNS, 10).
+-define(RUNS, 100).
 
 % parameters for the runs
 
