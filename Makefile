@@ -31,6 +31,7 @@ BUILT=\
     ebin/mochijson2.beam \
     ebin/mochinum.beam \
     ebin/nicefloats.beam \
+    ebin/pseudo_randomness.beam \
     ebin/queue_in_out.beam \
     ebin/rbdict.beam \
     ebin/rfc4627.beam \
