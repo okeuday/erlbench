@@ -25,12 +25,12 @@ test_reductions1() ->
 test_reductions2() ->
     % not very random
     {I1, I2} = erlang:statistics(reductions),
-    (I1 xor I2) rem 11.
+    (I1 bxor I2) rem 11.
 
 test_stats_io() ->
     % not very random
     {{input, I1},{output, I2}} = erlang:statistics(io),
-    (I1 xor I2) rem 11.
+    (I1 bxor I2) rem 11.
     
 run(1, F) ->
     true = F() =< 10;
