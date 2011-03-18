@@ -1,0 +1,342 @@
+{
+  "holdings": [
+    {
+      "commission": 8000, 
+      "cost": 6140000, 
+      "lots": [
+        {
+          "buyDate": "2008-11-03 09:37:10.000", 
+          "industry": "MEDIA", 
+          "marketCap": "M", 
+          "quantity": 100000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-11-12 09:33:21.000", 
+          "industry": "MEDIA", 
+          "marketCap": "M", 
+          "quantity": 100000, 
+          "style": "G"
+        }
+      ], 
+      "quantity": 200000, 
+      "stock": "MVL", 
+      "type": "LONG"
+    }, 
+    {
+      "commission": 2080, 
+      "cost": 16511760.0, 
+      "lots": [
+        {
+          "buyDate": "2008-10-08 13:44:20.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 8000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-10-15 13:28:02.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 18000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-11-19 12:09:12.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 26000, 
+          "style": "G"
+        }
+      ], 
+      "quantity": 52000, 
+      "stock": "GOOG", 
+      "type": "LONG"
+    }, 
+    {
+      "commission": 12000, 
+      "cost": 28894000.0, 
+      "lots": [
+        {
+          "buyDate": "2008-10-31 14:51:13.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 100000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-11-19 12:08:52.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 100000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-12-04 15:38:36.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 100000, 
+          "style": "G"
+        }
+      ], 
+      "quantity": 300000, 
+      "stock": "AAPL", 
+      "type": "LONG"
+    }, 
+    {
+      "commission": 54000, 
+      "cost": 27993000.0, 
+      "lots": [
+        {
+          "buyDate": "2008-12-02 11:02:57.000", 
+          "industry": "FINANCIAL", 
+          "marketCap": "L", 
+          "quantity": 250000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-12-04 15:38:09.000", 
+          "industry": "FINANCIAL", 
+          "marketCap": "L", 
+          "quantity": 1100000, 
+          "style": "V"
+        }
+      ], 
+      "quantity": 1350000, 
+      "stock": "AXP", 
+      "type": "LONG"
+    }, 
+    {
+      "commission": 12086, 
+      "cost": 8445827.8399999999, 
+      "lots": [
+        {
+          "buyDate": "2008-12-02 11:06:13.000", 
+          "industry": "FINANCIAL", 
+          "marketCap": "u", 
+          "quantity": 60000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-12-09 09:33:46.000", 
+          "industry": "FINANCIAL", 
+          "marketCap": "S", 
+          "quantity": 70146, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-12-12 10:50:40.000", 
+          "industry": "FINANCIAL", 
+          "marketCap": "S", 
+          "quantity": 52000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-12-12 10:52:08.000", 
+          "industry": "FINANCIAL", 
+          "marketCap": "S", 
+          "quantity": 120000, 
+          "style": "V"
+        }
+      ], 
+      "quantity": 302146, 
+      "stock": "DIG", 
+      "type": "LONG"
+    }, 
+    {
+      "commission": 68000, 
+      "cost": 35280000.0, 
+      "lots": [
+        {
+          "buyDate": "2008-10-15 13:28:54.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 200000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-10-30 13:05:38.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 100000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-12-09 15:11:36.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 300000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-12-12 10:28:49.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 100000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-12-16 15:44:48.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "L", 
+          "quantity": 1000000, 
+          "style": "V"
+        }
+      ], 
+      "quantity": 1700000, 
+      "stock": "MSFT", 
+      "type": "LONG"
+    }, 
+    {
+      "commission": 24720, 
+      "cost": 4922760, 
+      "lots": [
+        {
+          "buyDate": "2008-11-20 09:33:02.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "S", 
+          "quantity": 165000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-11-26 15:41:12.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "S", 
+          "quantity": 160000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-12-10 12:39:34.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "S", 
+          "quantity": 78000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-12-12 10:28:08.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "S", 
+          "quantity": 70000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-12-15 12:28:36.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "S", 
+          "quantity": 75000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-12-16 15:45:14.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "S", 
+          "quantity": 70000, 
+          "style": "G"
+        }
+      ], 
+      "quantity": 618000, 
+      "stock": "BCSI", 
+      "type": "LONG"
+    }, 
+    {
+      "commission": 43200, 
+      "cost": 11094000.0, 
+      "lots": [
+        {
+          "buyDate": "2008-12-15 09:33:15.000", 
+          "industry": "INDUSTRIAL", 
+          "marketCap": "L", 
+          "quantity": 1000000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-12-16 15:45:34.000", 
+          "industry": "INDUSTRIAL", 
+          "marketCap": "L", 
+          "quantity": 80000, 
+          "style": "V"
+        }
+      ], 
+      "quantity": 1080000, 
+      "stock": "AA", 
+      "type": "LONG"
+    }, 
+    {
+      "commission": 61440, 
+      "cost": 20529245.0, 
+      "lots": [
+        {
+          "buyDate": "2008-10-29 15:32:18.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "M", 
+          "quantity": 238000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-10-31 14:51:43.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "M", 
+          "quantity": 237999, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-11-11 09:42:08.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "M", 
+          "quantity": 290000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-11-19 12:09:44.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "M", 
+          "quantity": 270000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-11-20 11:38:21.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "M", 
+          "quantity": 270000, 
+          "style": "V"
+        }, 
+        {
+          "buyDate": "2008-11-26 14:08:12.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "M", 
+          "quantity": 130000, 
+          "style": "G"
+        }, 
+        {
+          "buyDate": "2008-12-04 15:37:44.000", 
+          "industry": "TECHNOLOGY", 
+          "marketCap": "M", 
+          "quantity": 100000, 
+          "style": "G"
+        }
+      ], 
+      "quantity": 1535999, 
+      "stock": "LOGI", 
+      "type": "LONG"
+    }
+  ], 
+  "id": 219948, 
+  "inceptionDate": "2008-04-01", 
+  "longCash": 14826.049999999999, 
+  "ownerId": 8, 
+  "pendingOrders": [], 
+  "shortCash": -0.16, 
+  "summary": {
+    "totalValue": null
+  }, 
+  "watchlist": [
+    {
+      "added": "2008-11-19 12:10:19.000", 
+      "stock": "CVX"
+    }, 
+    {
+      "added": "2008-10-20 17:29:58.000", 
+      "stock": "MS"
+    }
+  ]
+}

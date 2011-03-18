@@ -7,12 +7,17 @@
 
 -include("erlbench.hrl").
 
-% parameters for the runs
--define(TESTS, [integer_key, string_key, list_traversal]).
 -define(RUNS, 10).
-%-define(COUNTS, [1000, 10000, 50000]).
--define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,
-                 8000, 16000, 32000, 64000]).
+
+% parameters for the runs
+
+%-define(COUNTS, [1]).
+%-define(TESTS, [json_decode, json_encode]).
+
+-define(COUNTS, [1000, 10000, 50000]).
+%-define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,
+%                 8000, 16000, 32000, 64000]).
+-define(TESTS, [string_key, integer_key, list_traversal]).
 
 test() ->
     lists:foreach(fun(Test) ->

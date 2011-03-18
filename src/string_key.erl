@@ -22,7 +22,7 @@
 
 -include("erlbench.hrl").
 
--define(WORDLIST, "words").
+-define(WORDLIST, "data/words").
 
 data1(_) ->
     gb_trees:empty().

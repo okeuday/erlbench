@@ -1,0 +1,88 @@
+[
+  {
+    "city": "Geneve", 
+    "concentrationFocus": "LESS_THAN_10", 
+    "country": "CH", 
+    "creationTime": "2008-01-21", 
+    "experiences": [
+      "KACHING", 
+      "DEVELOPMENT", 
+      "LOGIN_SYSTEM", 
+      "ADMIN", 
+      "RESEARCH", 
+      "RANKINGS"
+    ], 
+    "externalIds": [
+      {
+        "id": 219948, 
+        "platform": "FACEBOOK"
+      }
+    ], 
+    "firstName": "Pascal-Louis", 
+    "id": 8, 
+    "industryFocus": "TECHNOLOGY", 
+    "interests": {
+      "MY_WALL": [
+        "EMAIL"
+      ]
+    }, 
+    "investmentStrategy": "Hire people who can manage my assets for me. I'm lousy.", 
+    "lastLogin": "2008-12-17 12:45:25.000", 
+    "lastName": "Perez", 
+    "marketCapFocus": "LARGE", 
+    "nickName": "Pascal-Louis Perez", 
+    "nonValidatedEmails": [
+      "pascal.loui-s.perez@gmail.com"
+    ], 
+    "passwordSalt": 3567830610840546163, 
+    "picture": "sqr8.jpg", 
+    "points": 0, 
+    "portfolioId": 219948, 
+    "preferences": {
+      "guitarPromoClosed": "1", 
+      "kfe.elite-rankings": "hide", 
+      "kfe.last_viewed_feature": "1"
+    }, 
+    "primaryEmail": "pascal.louis.perez@gmail.com", 
+    "rankLevel": "BASIC", 
+    "sessions": [
+      {
+        "d": "p", 
+        "k": "qOtXSepsfrc=", 
+        "parameters": {
+          "facebookSessionKey": "a9f133eed207196a563b0ca7-219948", 
+          "facebookUserId": "219948"
+        }, 
+        "platform": "FACEBOOK"
+      }, 
+      {
+        "d": "s", 
+        "k": "O7p3i91IXa8="
+      }, 
+      {
+        "d": "s", 
+        "k": "fexhG/MSXr0="
+      }, 
+      {
+        "d": "s", 
+        "k": "YUkWZMK4ors="
+      }, 
+      {
+        "d": "s", 
+        "k": "ETfFsm0svdg="
+      }
+    ], 
+    "shard": 8, 
+    "showFlag": true, 
+    "showPicture": true, 
+    "styleFocus": "GROWTH", 
+    "tradingFrequencyFocus": "BUY_AND_HOLD", 
+    "useRealName": true, 
+    "validatedEmails": [
+      "pascal.louis.perez@gmail.com", 
+      "pascal@kaching.com", 
+      "pascal@cs.stanford.edu"
+    ], 
+    "validatedPrimaryEmail": "pascal.louis.perez@gmail.com"
+  }
+]
