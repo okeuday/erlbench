@@ -62,14 +62,14 @@ test(_) ->
     {F7mochijson2, _} = timer:tc(mochijson2, encode, [F7Result]),
     {F8mochijson2, _} = timer:tc(mochijson2, encode, [F8Result]),
 
-    {F1rfc4627, _} = timer:tc(rfc4627, encode, [F1Result]),
-    {F2rfc4627, _} = timer:tc(rfc4627, encode, [F2Result]),
-    {F3rfc4627, _} = timer:tc(rfc4627, encode, [F3Result]),
-    {F4rfc4627, _} = timer:tc(rfc4627, encode, [F4Result]),
-    {F5rfc4627, _} = timer:tc(rfc4627, encode, [F5Result]),
-    {F6rfc4627, _} = timer:tc(rfc4627, encode, [F6Result]),
-    {F7rfc4627, _} = timer:tc(rfc4627, encode, [F7Result]),
-    {F8rfc4627, _} = timer:tc(rfc4627, encode, [F8Result]),
+    %{F1rfc4627, _} = timer:tc(rfc4627, encode, [F1Result]),
+    %{F2rfc4627, _} = timer:tc(rfc4627, encode, [F2Result]),
+    %{F3rfc4627, _} = timer:tc(rfc4627, encode, [F3Result]),
+    %{F4rfc4627, _} = timer:tc(rfc4627, encode, [F4Result]),
+    %{F5rfc4627, _} = timer:tc(rfc4627, encode, [F5Result]),
+    %{F6rfc4627, _} = timer:tc(rfc4627, encode, [F6Result]),
+    %{F7rfc4627, _} = timer:tc(rfc4627, encode, [F7Result]),
+    %{F8rfc4627, _} = timer:tc(rfc4627, encode, [F8Result]),
 
     %% results
     [
@@ -98,15 +98,15 @@ test(_) ->
         #result{name = "file5 encode mochijson2",    get =  F5mochijson2},
         #result{name = "file6 encode mochijson2",    get =  F6mochijson2},
         #result{name = "file7 encode mochijson2",    get =  F7mochijson2},
-        #result{name = "file8 encode mochijson2",    get =  F8mochijson2},
+        #result{name = "file8 encode mochijson2",    get =  F8mochijson2}
 
-        #result{name = "file1 encode rfc4627",       get =  F1rfc4627},
-        #result{name = "file2 encode rfc4627",       get =  F2rfc4627},
-        #result{name = "file3 encode rfc4627",       get =  F3rfc4627},
-        #result{name = "file4 encode rfc4627",       get =  F4rfc4627},
-        #result{name = "file5 encode rfc4627",       get =  F5rfc4627},
-        #result{name = "file6 encode rfc4627",       get =  F6rfc4627},
-        #result{name = "file7 encode rfc4627",       get =  F7rfc4627},
-        #result{name = "file8 encode rfc4627",       get =  F8rfc4627}
+        %#result{name = "file1 encode rfc4627",       get =  F1rfc4627},
+        %#result{name = "file2 encode rfc4627",       get =  F2rfc4627},
+        %#result{name = "file3 encode rfc4627",       get =  F3rfc4627},
+        %#result{name = "file4 encode rfc4627",       get =  F4rfc4627},
+        %#result{name = "file5 encode rfc4627",       get =  F5rfc4627},
+        %#result{name = "file6 encode rfc4627",       get =  F6rfc4627},
+        %#result{name = "file7 encode rfc4627",       get =  F7rfc4627},
+        %#result{name = "file8 encode rfc4627",       get =  F8rfc4627}
     ].
 
