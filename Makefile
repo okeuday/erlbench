@@ -37,7 +37,9 @@ BUILT=\
     ebin/rfc4627.beam \
     ebin/run.beam \
     ebin/string_key.beam \
-    ebin/trie.beam
+    ebin/trie.beam \
+    ebin/uuid_creation.beam \
+    ebin/uuid.beam
 
 beam: $(BUILT)
 
