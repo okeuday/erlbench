@@ -11,7 +11,7 @@
 
 % parameters for the runs
 
--define(COUNTS, [10000]).
+-define(COUNTS, [100000]).
 -define(TESTS, [uuid_creation]).
 
 %-define(COUNTS, [100]).

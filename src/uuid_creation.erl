@@ -26,16 +26,14 @@ test(N) ->
     String = string:chars($X, 64),
     {V1, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v1/1, State]),
     {V3, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v3/1, String]),
-    {V4fast, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v4_fast/0]),
-    {V4safe, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v4_safe/0]),
+    {V4, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v4/0]),
     {V5, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v5/1, String]),
 
     %% results
     [
         #result{name = "v1 native",         get = V1},
         #result{name = "v3 native",         get = V3},
-        #result{name = "v4 fast native",    get = V4fast},
-        #result{name = "v4 safe native",    get = V4safe},
+        #result{name = "v4 native",         get = V4},
         #result{name = "v5 native",         get = V5}
     ].
 
