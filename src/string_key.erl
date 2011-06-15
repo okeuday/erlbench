@@ -33,8 +33,8 @@ data2(_) ->
 data3(_) ->
     aadict:new().
 
-data4(_) ->
-    orddict:new().
+%data4(_) ->
+%    orddict:new().
 
 data5(_) ->
     dict:new().
@@ -43,28 +43,34 @@ data6(_) ->
     trie:new().
 
 data7(_) ->
-    ets:new(ets_test_1, []).
+    ets:new(ets_test_1, [set]).
 
 data8(_) ->
     undefined.
 
 data9(_) ->
-    ets:new(ets_test_2, [{read_concurrency, true}]).
+    ets:new(ets_test_2, [set, {read_concurrency, true}]).
 
-data10(N) ->
-    hasht:new(N).
+%data10(N) ->
+%    hasht:new(N).
 
-data11(N) ->
-    hashtl2:new(N).
+%data11(N) ->
+%    hashtl2:new(N).
 
-data12(N) ->
-    hashtl3:new(N).
+%data12(N) ->
+%    hashtl3:new(N).
 
-data13(N) ->
-    hashtl4:new(N).
+%data13(N) ->
+%    hashtl4:new(N).
 
 data14(N) ->
     hashtl:new(N).
+
+data15(_) ->
+    ets:new(ets_test_3, [ordered_set]).
+
+data16(_) ->
+    ets:new(ets_test_4, [ordered_set, {read_concurrency, true}]).
 
 gb_trees_set(Tree, String, Value) ->
     gb_trees:enter(String, Value, Tree).
@@ -75,8 +81,8 @@ rbdict_set(Dict, String, Value) ->
 aadict_set(Dict, String, Value) ->
     aadict:store(String, Value, Dict).
 
-orddict_set(Dict, String, Value) ->
-    orddict:store(String, Value, Dict).
+%orddict_set(Dict, String, Value) ->
+%    orddict:store(String, Value, Dict).
 
 dict_set(Dict, String, Value) ->
     dict:store(String, Value, Dict).
@@ -91,17 +97,17 @@ ets_set(Tid, String, Value) ->
 pdict_set(_, String, Value) ->
     erlang:put(String, Value).
 
-hasht_set(HashT, String, Value) ->
-    hasht:store(String, Value, HashT).
+%hasht_set(HashT, String, Value) ->
+%    hasht:store(String, Value, HashT).
 
-hashtl2_set(HashT, String, Value) ->
-    hashtl2:store(String, Value, HashT).
+%hashtl2_set(HashT, String, Value) ->
+%    hashtl2:store(String, Value, HashT).
 
-hashtl3_set(HashT, String, Value) ->
-    hashtl3:store(String, Value, HashT).
+%hashtl3_set(HashT, String, Value) ->
+%    hashtl3:store(String, Value, HashT).
 
-hashtl4_set(HashT, String, Value) ->
-    hashtl4:store(String, Value, HashT).
+%hashtl4_set(HashT, String, Value) ->
+%    hashtl4:store(String, Value, HashT).
 
 hashtl_set(HashT, String, Value) ->
     hashtl:store(String, Value, HashT).
@@ -115,8 +121,8 @@ rbdict_get(Dict, String) ->
 aadict_get(Dict, String) ->
     aadict:fetch(String, Dict).
 
-orddict_get(Dict, String) ->
-    orddict:fetch(String, Dict).
+%orddict_get(Dict, String) ->
+%    orddict:fetch(String, Dict).
 
 dict_get(Dict, String) ->
     dict:fetch(String, Dict).
@@ -130,17 +136,17 @@ ets_get(Tid, String) ->
 pdict_get(_, String) ->
     erlang:get(String).
 
-hasht_get(HashT, String) ->
-    hasht:fetch(String, HashT).
+%hasht_get(HashT, String) ->
+%    hasht:fetch(String, HashT).
 
-hashtl2_get(HashT, String) ->
-    empty = hashtl2:fetch(String, HashT).
+%hashtl2_get(HashT, String) ->
+%    empty = hashtl2:fetch(String, HashT).
 
-hashtl3_get(HashT, String) ->
-    empty = hashtl3:fetch(String, HashT).
+%hashtl3_get(HashT, String) ->
+%    empty = hashtl3:fetch(String, HashT).
 
-hashtl4_get(HashT, String) ->
-    empty = hashtl4:fetch(String, HashT).
+%hashtl4_get(HashT, String) ->
+%    empty = hashtl4:fetch(String, HashT).
 
 hashtl_get(HashT, String) ->
     empty = hashtl:fetch(String, HashT).
@@ -211,20 +217,28 @@ test(N) ->
     {G9, _} = timer:tc(string_key, get_concurrent, [10, [fun ets_get/2, D9, Words]]),
     ets:delete(D9),
     %% hash table
-    {S10, D10} = timer:tc(string_key, set, [fun hasht_set/3, data10(N), Words]),
-    {G10, _} = timer:tc(string_key, get, [fun hasht_get/2, D10, Words]),
+    %{S10, D10} = timer:tc(string_key, set, [fun hasht_set/3, data10(N), Words]),
+    %{G10, _} = timer:tc(string_key, get, [fun hasht_get/2, D10, Words]),
     %% hash table layered
-    {S11, D11} = timer:tc(string_key, set, [fun hashtl2_set/3, data11(N), Words]),
-    {G11, _} = timer:tc(string_key, get, [fun hashtl2_get/2, D11, Words]),
+    %{S11, D11} = timer:tc(string_key, set, [fun hashtl2_set/3, data11(N), Words]),
+    %{G11, _} = timer:tc(string_key, get, [fun hashtl2_get/2, D11, Words]),
     %% hash table layered
-    {S12, D12} = timer:tc(string_key, set, [fun hashtl3_set/3, data12(N), Words]),
-    {G12, _} = timer:tc(string_key, get, [fun hashtl3_get/2, D12, Words]),
+    %{S12, D12} = timer:tc(string_key, set, [fun hashtl3_set/3, data12(N), Words]),
+    %{G12, _} = timer:tc(string_key, get, [fun hashtl3_get/2, D12, Words]),
     %% hash table layered
-    {S13, D13} = timer:tc(string_key, set, [fun hashtl4_set/3, data13(N), Words]),
-    {G13, _} = timer:tc(string_key, get, [fun hashtl4_get/2, D13, Words]),
+    %{S13, D13} = timer:tc(string_key, set, [fun hashtl4_set/3, data13(N), Words]),
+    %{G13, _} = timer:tc(string_key, get, [fun hashtl4_get/2, D13, Words]),
     %% hash table layered
     {S14, D14} = timer:tc(string_key, set, [fun hashtl_set/3, data14(N), Words]),
     {G14, _} = timer:tc(string_key, get, [fun hashtl_get/2, D14, Words]),
+    %% ets
+    {S15, D15} = timer:tc(string_key, set, [fun ets_set/3, data15(N), Words]),
+    {G15, _} = timer:tc(string_key, get, [fun ets_get/2, D15, Words]),
+    ets:delete(D15),
+    %% ets with 10 concurrent accesses
+    {_, D16} = timer:tc(string_key, set, [fun ets_set/3, data16(N), Words]),
+    {G16, _} = timer:tc(string_key, get_concurrent, [10, [fun ets_get/2, D16, Words]]),
+    ets:delete(D16),
     %% results
     [
         #result{name = "gb_trees",            get =  G1, set =  S1},
@@ -235,12 +249,14 @@ test(N) ->
         #result{name = "trie",                get =  G6, set =  S6},
         #result{name = "ets (set)",           get =  G7, set =  S7},
         #result{name = "process dictionary",  get =  G8, set =  S8},
-        #result{name = "ets x10 (set)",       get = erlang:round(G9 / 10.0)},
-        #result{name = "hasht",               get = G10, set = S10},
-        #result{name = "hashtl2",             get = G11, set = S11},
-        #result{name = "hashtl3",             get = G12, set = S12},
-        #result{name = "hashtl4",             get = G13, set = S13},
-        #result{name = "hashtl",              get = G14, set = S14}
+        #result{name = "ets x10 read (set)",  get = erlang:round(G9 / 10.0)},
+        %#result{name = "hasht",               get = G10, set = S10},
+        %#result{name = "hashtl2",             get = G11, set = S11},
+        %#result{name = "hashtl3",             get = G12, set = S12},
+        %#result{name = "hashtl4",             get = G13, set = S13},
+        #result{name = "hashtl",              get = G14, set = S14},
+        #result{name = "ets (ordered_set)",   get = G15, set = S15},
+        #result{name = "ets x10 read (ordered_set)", get = erlang:round(G16 / 10.0)}
     ].
 
 read_wordlist() ->
