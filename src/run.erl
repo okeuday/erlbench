@@ -20,10 +20,11 @@
 %-define(COUNTS, [10000]).
 %-define(TESTS, [pseudo_randomness]).
 
--define(COUNTS, [1000, 10000, 50000]).
-%-define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,
-%                 8000, 16000, 32000, 64000]).
--define(TESTS, [string_key, integer_key, list_traversal]).
+%-define(COUNTS, [1000, 10000, 50000]).
+%-define(TESTS, [string_key, integer_key, list_traversal]).
+-define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,
+                 8000, 16000, 32000, 64000]).
+-define(TESTS, [string_key, integer_key]).
 
 test() ->
     lists:foreach(fun(Test) ->

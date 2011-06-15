@@ -4,6 +4,8 @@
 %%%------------------------------------------------------------------------
 %%% @doc
 %%% ==Hash Table Layered Implementation.==
+%%% Simple statically sized hash table implementation.  Layers of tuples are
+%%% used for efficient assignment operations with complex keys (strings, etc.).
 %%% @end
 %%%
 %%% BSD LICENSE
