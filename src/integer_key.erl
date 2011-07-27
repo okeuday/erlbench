@@ -43,35 +43,41 @@ data5(_) ->
 data6(_) ->
     aadict:new().
 
-data7(_) ->
-    orddict:new().
+%data7(_) ->
+%    orddict:new().
 
 data8(_) ->
     dict:new().
 
 data9(_) ->
-    ets:new(ets_test_1, []).
+    ets:new(ets_test_1, [set]).
 
 data10(_) ->
     undefined.
 
 data11(_) ->
-    ets:new(ets_test_2, [{read_concurrency, true}]).
+    ets:new(ets_test_2, [set, {read_concurrency, true}]).
 
-data12(N) ->
-    hasht:new(N).
+%data12(N) ->
+%    hasht:new(N).
 
-data13(N) ->
-    hashtl2:new(N).
+%data13(N) ->
+%    hashtl2:new(N).
 
-data14(N) ->
-    hashtl3:new(N).
+%data14(N) ->
+%    hashtl3:new(N).
 
-data15(N) ->
-    hashtl4:new(N).
+%data15(N) ->
+%    hashtl4:new(N).
 
 data16(N) ->
     hashtl:new(N).
+
+data17(_) ->
+    ets:new(ets_test_3, [ordered_set]).
+
+data18(_) ->
+    ets:new(ets_test_4, [ordered_set, {read_concurrency, true}]).
 
 array_set(Array, I, Value) ->
     %% array indexing starts at 0
@@ -90,8 +96,8 @@ rbdict_set(Dict, I, Value) ->
 aadict_set(Dict, I, Value) ->
     aadict:store(I, Value, Dict).
 
-orddict_set(Dict, I, Value) ->
-    orddict:store(I, Value, Dict).
+%orddict_set(Dict, I, Value) ->
+%    orddict:store(I, Value, Dict).
 
 dict_set(Dict, I, Value) ->
     dict:store(I, Value, Dict).
@@ -103,17 +109,17 @@ ets_set(Tid, I, Value) ->
 pdict_set(_, I, Value) ->
     erlang:put(I, Value).
 
-hasht_set(HashT, I, Value) ->
-    hasht:store(I, Value, HashT).
+%hasht_set(HashT, I, Value) ->
+%    hasht:store(I, Value, HashT).
 
-hashtl2_set(HashT, I, Value) ->
-    hashtl2:store(I, Value, HashT).
+%hashtl2_set(HashT, I, Value) ->
+%    hashtl2:store(I, Value, HashT).
 
-hashtl3_set(HashT, I, Value) ->
-    hashtl3:store(I, Value, HashT).
+%hashtl3_set(HashT, I, Value) ->
+%    hashtl3:store(I, Value, HashT).
 
-hashtl4_set(HashT, I, Value) ->
-    hashtl4:store(I, Value, HashT).
+%hashtl4_set(HashT, I, Value) ->
+%    hashtl4:store(I, Value, HashT).
 
 hashtl_set(HashT, I, Value) ->
     hashtl:store(I, Value, HashT).
@@ -133,8 +139,8 @@ rbdict_get(Dict, I) ->
 aadict_get(Dict, I) ->
     aadict:fetch(I, Dict).
 
-orddict_get(Dict, I) ->
-    orddict:fetch(I, Dict).
+%orddict_get(Dict, I) ->
+%    orddict:fetch(I, Dict).
 
 dict_get(Dict, I) ->
     dict:fetch(I, Dict).
@@ -145,17 +151,17 @@ ets_get(Tid, I) ->
 pdict_get(_, I) ->
     erlang:get(I).
 
-hasht_get(HashT, I) ->
-    hasht:fetch(I, HashT).
+%hasht_get(HashT, I) ->
+%    hasht:fetch(I, HashT).
 
-hashtl2_get(HashT, I) ->
-    I = hashtl2:fetch(I, HashT).
+%hashtl2_get(HashT, I) ->
+%    I = hashtl2:fetch(I, HashT).
 
-hashtl3_get(HashT, I) ->
-    I = hashtl3:fetch(I, HashT).
+%hashtl3_get(HashT, I) ->
+%    I = hashtl3:fetch(I, HashT).
 
-hashtl4_get(HashT, I) ->
-    I = hashtl4:fetch(I, HashT).
+%hashtl4_get(HashT, I) ->
+%    I = hashtl4:fetch(I, HashT).
 
 hashtl_get(HashT, I) ->
     I = hashtl:fetch(I, HashT).
@@ -230,8 +236,8 @@ test(N) ->
     {G11, _} = timer:tc(integer_key, get_concurrent, [10, [fun ets_get/2, D11, N]]),
     ets:delete(D11),
     %% hash table
-    {S12, D12} = timer:tc(integer_key, set, [fun hasht_set/3, data12(N), N]),
-    {G12, _} = timer:tc(integer_key, get, [fun hasht_get/2, D12, N]),
+    %{S12, D12} = timer:tc(integer_key, set, [fun hasht_set/3, data12(N), N]),
+    %{G12, _} = timer:tc(integer_key, get, [fun hasht_get/2, D12, N]),
     %% hash table layered
     %{S13, D13} = timer:tc(integer_key, set, [fun hashtl2_set/3, data13(N), N]),
     %{G13, _} = timer:tc(integer_key, get, [fun hashtl2_get/2, D13, N]),
@@ -244,6 +250,14 @@ test(N) ->
     %% hash table layered
     {S16, D16} = timer:tc(integer_key, set, [fun hashtl_set/3, data16(N), N]),
     {G16, _} = timer:tc(integer_key, get, [fun hashtl_get/2, D16, N]),
+    %% ets
+    {S17, D17} = timer:tc(integer_key, set, [fun ets_set/3, data17(N), N]),
+    {G17, _} = timer:tc(integer_key, get, [fun ets_get/2, D17, N]),
+    ets:delete(D17),
+    %% ets with 10 concurrent accesses
+    {_, D18} = timer:tc(integer_key, set, [fun ets_set/3, data18(N), N]),
+    {G18, _} = timer:tc(integer_key, get_concurrent, [10, [fun ets_get/2, D18, N]]),
+    ets:delete(D18),
     %% results
     [
         #result{name = "array (fixed)",       get =  G1, set =  S1},
@@ -256,11 +270,13 @@ test(N) ->
         #result{name = "dict",                get =  G8, set =  S8},
         #result{name = "ets (set)",           get =  G9, set =  S9},
         #result{name = "process dictionary",  get = G10, set = S10},
-        #result{name = "ets x10 (set)",       get = erlang:round(G11 / 10.0)},
-        #result{name = "hasht",               get = G12, set = S12},
+        #result{name = "ets x10 read (set)",  get = erlang:round(G11 / 10.0)},
+        %#result{name = "hasht",               get = G12, set = S12},
         %#result{name = "hashtl2",             get = G13, set = S13},
         %#result{name = "hashtl3",             get = G14, set = S14},
         %#result{name = "hashtl4",             get = G15, set = S15},
-        #result{name = "hashtl",              get = G16, set = S16}
+        #result{name = "hashtl",              get = G16, set = S16},
+        #result{name = "ets (ordered_set)",   get = G17, set = S17},
+        #result{name = "ets x10 read (ordered_set)", get = erlang:round(G18 / 10.0)}
     ].
 
