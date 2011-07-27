@@ -51,10 +51,11 @@
 -author('mjtruog [at] gmail (dot) com').
 
 %% external interface
--export([new/0,
-         new/1,
+-export([delete/2,
          fetch/2,
          find/2,
+         new/0,
+         new/1,
          store/3]).
 
 -define(PRIMES, [127, 251, 509, 1021, 2039, 4093, 8191, 16381, 32749, 65521]).
@@ -62,6 +63,15 @@
 %%%------------------------------------------------------------------------
 %%% External interface functions
 %%%------------------------------------------------------------------------
+
+delete(Key, {Size, Bins}) ->
+    {Size, delete_key(hash_key(Size, Key), Key, Bins)}.
+
+fetch(Key, {Size, Bins}) ->
+    fetch_key(hash_key(Size, Key), Bins, Key).
+
+find(Key, {Size, Bins}) ->
+    find_key(hash_key(Size, Key), Bins, Key).
 
 new() ->
     [Size | _] = ?PRIMES,
@@ -80,12 +90,6 @@ new(Entries)
 store(Key, Value, {Size, Bins}) ->
     {Size, store_key(hash_key(Size, Key), {Key, Value}, Bins)}.
 
-fetch(Key, {Size, Bins}) ->
-    fetch_key(hash_key(Size, Key), Bins, Key).
-
-find(Key, {Size, Bins}) ->
-    find_key(hash_key(Size, Key), Bins, Key).
-
 %%%------------------------------------------------------------------------
 %%% Private functions
 %%%------------------------------------------------------------------------
@@ -96,29 +100,33 @@ create([]) ->
 create([I | Is]) ->
     erlang:make_tuple(I + 1, create(Is)).
 
-store_key({I1}, KV, Bins1) ->
-    erlang:setelement(I1, Bins1, [KV | erlang:element(I1, Bins1)]);
+delete_key({I1}, Key, Bins1) ->
+    erlang:setelement(I1, Bins1,
+                      lists:keydelete(Key, 1, erlang:element(I1, Bins1)));
 
-store_key({I1, I2}, KV, Bins1) ->
+delete_key({I1, I2}, Key, Bins1) ->
     Bins2 = erlang:element(I1, Bins1),
     erlang:setelement(I1, Bins1,
-    erlang:setelement(I2, Bins2, [KV | erlang:element(I2, Bins2)]));
+    erlang:setelement(I2, Bins2,
+                      lists:keydelete(Key, 1, erlang:element(I2, Bins2))));
 
-store_key({I1, I2, I3}, KV, Bins1) ->
+delete_key({I1, I2, I3}, Key, Bins1) ->
     Bins2 = erlang:element(I1, Bins1),
     Bins3 = erlang:element(I2, Bins2),
     erlang:setelement(I1, Bins1,
     erlang:setelement(I2, Bins2,
-    erlang:setelement(I3, Bins3, [KV | erlang:element(I3, Bins3)])));
+    erlang:setelement(I3, Bins3,
+                      lists:keydelete(Key, 1, erlang:element(I3, Bins3)))));
 
-store_key({I1, I2, I3, I4}, KV, Bins1) ->
+delete_key({I1, I2, I3, I4}, Key, Bins1) ->
     Bins2 = erlang:element(I1, Bins1),
     Bins3 = erlang:element(I2, Bins2),
     Bins4 = erlang:element(I3, Bins3),
     erlang:setelement(I1, Bins1,
     erlang:setelement(I2, Bins2,
     erlang:setelement(I3, Bins3,
-    erlang:setelement(I4, Bins4, [KV | erlang:element(I4, Bins4)])))).
+    erlang:setelement(I4, Bins4,
+                      lists:keydelete(Key, 1, erlang:element(I4, Bins4)))))).
 
 fetch_key({I1}, Bins1, Key) ->
     [H | _] = L = erlang:element(I1, Bins1),
@@ -231,6 +239,30 @@ find_key({I1, I2, I3, I4}, Bins1, Key) ->
                     {ok, Value}
             end
     end.
+
+store_key({I1}, KV, Bins1) ->
+    erlang:setelement(I1, Bins1, [KV | erlang:element(I1, Bins1)]);
+
+store_key({I1, I2}, KV, Bins1) ->
+    Bins2 = erlang:element(I1, Bins1),
+    erlang:setelement(I1, Bins1,
+    erlang:setelement(I2, Bins2, [KV | erlang:element(I2, Bins2)]));
+
+store_key({I1, I2, I3}, KV, Bins1) ->
+    Bins2 = erlang:element(I1, Bins1),
+    Bins3 = erlang:element(I2, Bins2),
+    erlang:setelement(I1, Bins1,
+    erlang:setelement(I2, Bins2,
+    erlang:setelement(I3, Bins3, [KV | erlang:element(I3, Bins3)])));
+
+store_key({I1, I2, I3, I4}, KV, Bins1) ->
+    Bins2 = erlang:element(I1, Bins1),
+    Bins3 = erlang:element(I2, Bins2),
+    Bins4 = erlang:element(I3, Bins3),
+    erlang:setelement(I1, Bins1,
+    erlang:setelement(I2, Bins2,
+    erlang:setelement(I3, Bins3,
+    erlang:setelement(I4, Bins4, [KV | erlang:element(I4, Bins4)])))).
 
 -compile({inline, [{mod,2},{hash,2},{hash_key,2},{hash_max,1}]}).
 
