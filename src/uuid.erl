@@ -65,6 +65,8 @@
          get_v1_time/1,
          get_v3/1,
          get_v4/0,
+         get_v4_urandom_bigint/0,
+         get_v4_urandom_native/0,
          get_v5/1,
          uuid_to_string/1,
          increment/1]).
@@ -83,15 +85,43 @@
 
 new(Pid) when is_pid(Pid) ->
     {ok, Ifs} = inet:getiflist(),
-    % at least one unique network interface must exist
-    If = [_ | _] = lists:last(lists:filter(fun(I) ->
+    If = lists:last(lists:filter(fun(I) ->
         not lists:prefix("lo", I)
     end, Ifs)),
-    % 48 bits for MAC address
-    {ok,[{hwaddr,[OUI1,OUI2,OUI3,NIC1,NIC2,NIC3]}]} = inet:ifget(If, [hwaddr]),
-    % reduce the MAC address to 16 bits
-    IfByte1 = ((OUI1 bxor OUI2) bxor OUI3) bxor NIC1,
-    IfByte2 = NIC2 bxor NIC3,
+    NodeData = if
+        If =:= [] ->
+            % include the distributed Erlang node name to be node specific
+            erlang:list_to_binary(erlang:atom_to_list(node()));
+        true ->
+            % 48 bits for MAC address
+            {ok,[{hwaddr, MAC}]} = inet:ifget(If, [hwaddr]),
+            % include the distributed Erlang node name to be node specific
+            erlang:list_to_binary(MAC ++ erlang:atom_to_list(node()))
+    end,
+    <<NODE01, NODE02, NODE03, NODE04, NODE05,
+      NODE06, NODE07, NODE08, NODE09, NODE10,
+      NODE11, NODE12, NODE13, NODE14, NODE15,
+      NODE16, NODE17, NODE18, NODE19, NODE20>> = crypto:sha(NodeData),
+    % reduce the 160 bit checksum to 16 bits
+    NodeByte1 = ((((((((NODE01 bxor NODE02)
+                       bxor NODE03)
+                      bxor NODE04)
+                     bxor NODE05)
+                    bxor NODE06)
+                   bxor NODE07)
+                  bxor NODE08)
+                 bxor NODE09)
+                bxor NODE10,
+    NodeByte2 = ((((((((NODE11 bxor NODE12)
+                       bxor NODE13)
+                      bxor NODE14)
+                     bxor NODE15)
+                    bxor NODE16)
+                   bxor NODE17)
+                  bxor NODE18)
+                 bxor NODE19)
+                bxor NODE20,
+    % make the version 1 UUID both node and pid specific
     PidBin = erlang:term_to_binary(Pid),
     % 72 bits for the Erlang pid
     <<ID1:8, ID2:8, ID3:8, ID4:8, % ID (Node index)
@@ -105,7 +135,7 @@ new(Pid) when is_pid(Pid) ->
     PidByte4 = (ID4 bxor SR1) bxor CR1,
     ClockSeq = random:uniform(16384) - 1,
     <<ClockSeqHigh:6, ClockSeqLow:8>> = <<ClockSeq:14>>,
-    #uuid_state{node_id = <<IfByte1:8, IfByte2:8,
+    #uuid_state{node_id = <<NodeByte1:8, NodeByte2:8,
                             PidByte1:8, PidByte2:8,
                             PidByte3:8, PidByte4:8>>,
                 clock_seq = ClockSeq,
@@ -167,6 +197,40 @@ get_v4() ->
       0:1, 1:1,            % reserved bits
       Rand3:56>>.
 
+% random:uniform/1 repeats every 2.78e13
+% (see B.A. Wichmann and I.D.Hill, in 
+%  'An efficient and portable pseudo-random number generator',
+%  Journal of Applied Statistics. AS183. 1982, or Byte March 1987)
+% a single random:uniform/1 call can provide a maximum of 44 bits
+% (currently this is not significantly faster
+%  because multiple function calls are necessary)
+
+get_v4_urandom_bigint() ->
+    Rand1 = random:uniform(2199023255552) - 1, % random 41 bits
+    Rand2 = random:uniform(2199023255552) - 1, % random 41 bits
+    Rand3 = random:uniform(1099511627776) - 1, % random 40 bits
+    <<Rand2a:19, Rand2b:6, Rand2c:16>> = <<Rand2:41>>,
+    <<Rand1:41, Rand2a:19,
+      0:1, 1:1, 0:1, 0:1, % version 4 bits
+      Rand2b:6,
+      0:1, 1:1, % reserved bits
+      Rand2c:16, Rand3:40>>.
+
+% Erlang only allows 27 bits to be used for a native integer
+
+get_v4_urandom_native() ->
+    Rand1 = random:uniform(134217727) - 1, % random 27 bits
+    Rand2 = random:uniform(134217727) - 1, % random 27 bits
+    Rand3 = random:uniform(16383) - 1, % random 14 bits
+    Rand4 = random:uniform(134217727) - 1, % random 27 bits
+    Rand5 = random:uniform(134217727) - 1, % random 27 bits
+    <<Rand3a:2, Rand3b:6, Rand3c:6>> = <<Rand3:14>>,
+    <<Rand1:27, Rand2:27, Rand3a:2, 
+      0:1, 1:1, 0:1, 0:1, % version 4 bits
+      Rand3b:6,
+      0:1, 1:1, % reserved bits
+      Rand3c:6, Rand4:27, Rand5:27>>.
+
 get_v5([I | _] = Name)
     when is_integer(I) ->
     <<B1:60, B2:6, B3a:56, B3b:38>> = crypto:sha(Name),
@@ -184,7 +248,7 @@ uuid_to_string(Value)
       B3:16/unsigned-integer,
       B4:16/unsigned-integer,
       B5:48/unsigned-integer>> = Value,
-    lists:flatten(io_lib:format("~.16b-~.16b-~.16b-~.16b-~.16b",
+    lists:flatten(io_lib:format("~8.16.0b-~4.16.0b-~4.16.0b-~4.16.0b-~12.16.0b",
                                 [B1, B2, B3, B4, B5])).
 
 % The RFC said to increment the clock sequence counter

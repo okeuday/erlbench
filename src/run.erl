@@ -11,8 +11,8 @@
 
 % parameters for the runs
 
-%-define(COUNTS, [100000]).
-%-define(TESTS, [uuid_creation]).
+-define(COUNTS, [100000]).
+-define(TESTS, [uuid_creation]).
 
 %-define(COUNTS, [100]).
 %-define(TESTS, [json_encode, json_decode]).
@@ -22,9 +22,9 @@
 
 %-define(COUNTS, [1000, 10000, 50000]).
 %-define(TESTS, [string_key, integer_key, list_traversal]).
--define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,
-                 8000, 16000, 32000, 64000]).
--define(TESTS, [string_key, integer_key]).
+%-define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,
+%                 8000, 16000, 32000, 64000]).
+%-define(TESTS, [string_key, integer_key]).
 
 test() ->
     lists:foreach(fun(Test) ->
