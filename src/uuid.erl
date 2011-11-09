@@ -5,12 +5,14 @@
 %%% @doc
 %%% ==Erlang UUID Generation==
 %%% http://www.ietf.org/rfc/rfc4122.txt is the reference for official UUIDs.
-%%% This implementation provides a version 1 UUID that includes the Erlang pid
-%%% identifier (ID, Serial, Creation) within the 48 bit node ID.  To make room
-%%% for the Erlang pid identifier, the 48 bits from the MAC address are
-%%% bitwise-XORed (i.e., 3 OCI (Organizationally Unique Identifier)
-%%% bytes and 3 NIC (Network Interface Controller) specific bytes) down to
-%%% 16 bits. The Erlang pid is bitwise-XORed from 72 bits down to 32 bits.
+%%% This implementation provides a version 1 UUID that includes both the
+%%% Erlang pid identifier (ID, Serial, Creation) and the distributed Erlang
+%%% node name within the 48 bit node ID.  To make room for the Erlang pid
+%%% identifier, the 48 bits from the MAC address
+%%% (i.e., 3 OCI (Organizationally Unique Identifier) bytes and
+%%% 3 NIC (Network Interface Controller) specific bytes) and
+%%% the distributed Erlang node name are bitwise-XORed down to 16 bits.
+%%% The Erlang pid is bitwise-XORed from 72 bits down to 32 bits.
 %%% The version 3 (MD5), version 4 (random), and version 5 (SHA)
 %%% methods are provided as specified within the RFC.
 %%% @end
@@ -53,7 +55,7 @@
 %%%
 %%% @author Michael Truog <mjtruog [at] gmail (dot) com>
 %%% @copyright 2011 Michael Truog
-%%% @version 0.1.4 {@date} {@time}
+%%% @version 0.1.8 {@date} {@time}
 %%%------------------------------------------------------------------------
 
 -module(uuid).
@@ -169,8 +171,7 @@ get_v1_time(Value)
     <<Time:60>> = <<TimeHigh:12/little, TimeMid:16/little, TimeLow:32/little>>,
     Time. % microseconds since epoch
 
-get_v3([I | _] = Name)
-    when is_integer(I) ->
+get_v3(Name) ->
     <<B1:60, B2a:6, B2b:6, B3:56>> = crypto:md5(Name),
     B2 = B2a bxor B2b,
     <<B1:60,
@@ -231,8 +232,7 @@ get_v4_urandom_native() ->
       0:1, 1:1, % reserved bits
       Rand3c:6, Rand4:27, Rand5:27>>.
 
-get_v5([I | _] = Name)
-    when is_integer(I) ->
+get_v5(Name) ->
     <<B1:60, B2:6, B3a:56, B3b:38>> = crypto:sha(Name),
     B3 = B3a bxor B3b,
     <<B1:60,
@@ -260,7 +260,13 @@ uuid_to_string(Value)
 % and the Erlang node lifetime (the PID Creation is different after a node 
 % crash). Therefore, it is unclear why this function would be necessary
 % within this Erlang implementation of v1 UUID generation (if the system
-% is always running).
+% is always running). The only event that seems to require this function's
+% usage is if the v1 UUID has been stored and retrieved where both actions
+% occurred at a point with a system clock change inbetween or possibly
+% on different machines with a large difference in system clocks
+% (i.e., in some situation that isn't handled by the Erlang VM, so
+%  possibly if an external distribution mechanism was used between
+%  Erlang VMs, not connected with distributed Erlang).
 increment(#uuid_state{clock_seq = ClockSeq} = State) ->
     NextClockSeq = ClockSeq + 1,
     NewClockSeq = if

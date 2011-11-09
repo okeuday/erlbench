@@ -32,10 +32,13 @@ BUILT=\
     ebin/mochinum.beam \
     ebin/nicefloats.beam \
     ebin/pseudo_randomness.beam \
+    ebin/pqueue.beam \
+    ebin/priority_queue.beam \
     ebin/queue_in_out.beam \
     ebin/rbdict.beam \
     ebin/rfc4627.beam \
     ebin/run.beam \
+    ebin/run_priority_queue.beam \
     ebin/string_key.beam \
     ebin/trie.beam \
     ebin/uuid_creation.beam \
