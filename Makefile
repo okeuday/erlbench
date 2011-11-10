@@ -33,6 +33,7 @@ BUILT=\
     ebin/nicefloats.beam \
     ebin/pseudo_randomness.beam \
     ebin/pqueue.beam \
+    ebin/pqueue2.beam \
     ebin/priority_queue.beam \
     ebin/queue_in_out.beam \
     ebin/rbdict.beam \
