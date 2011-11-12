@@ -110,6 +110,8 @@ in(Value, P, H) ->
 
 is_empty(empty) ->
     true;
+is_empty({_, empty, empty, queue, Queue}) ->
+    queue:is_empty(Queue);
 is_empty(_) ->
     false.
 
@@ -435,20 +437,35 @@ test() ->
     false = pqueue2:is_empty(Q164),
     {empty, Q165} = pqueue2:pout(Q164),
     true = pqueue2:is_empty(Q165),
+    % test case 1, based on proper testing
+    C1V0 = pqueue2:in(-18, pqueue2:new()),
+    C1V1 = pqueue2:in(9, C1V0),
+    C1V2 = pqueue2:in(-10, -4, C1V1),
+    C1V3 = pqueue2:in(-29, C1V2),
+    C1V4 = pqueue2:in(11, C1V3),
+    5 = pqueue2:len(C1V4),
+    [-10, -18, 9, -29, 11] = pqueue2:to_list(C1V4),
+    % test case 2, based on proper testing
+    C2V0 = pqueue2:in(-4, -15, pqueue2:new()),
+    C2V1 = pqueue2:in(13, C2V0),
+    C2V2 = pqueue2:in(2, C2V1),
+    [-4, 13, 2] = to_list(C2V2),
     ok.
 
 %%%------------------------------------------------------------------------
 %%% Private functions
 %%%------------------------------------------------------------------------
 
-merge(empty, H) ->
+merge(empty, empty) ->
+    empty;
+merge(empty, {_, _, _, _, _} = H) ->
     H;
-merge(H, empty) ->
+merge({_, _, _, _, _} = H, empty) ->
     H;
 merge({P1, HL1, HR1, T, D}, {P2, _, _, _, _} = H2) when P1 < P2 ->
     {P1, HL1, merge(HR1, H2), T, D};
 merge({P1, _, _, _, _} = H1, {P2, HL2, HR2, T, D}) when P1 > P2 ->
-    {P2, merge(H1, HL2), HR2, T, D};
+    {P2, HL2, merge(H1, HR2), T, D};
 merge({P, HL1, HR1, element, Value1}, {P, HL2, HR2, element, Value2}) ->
     {P, merge(HL1, HR1), merge(HL2, HR2), queue,
      queue:from_list([Value2, Value1])};
