@@ -17,7 +17,7 @@ data3() ->
     pqueue2:new().
 
 data4() ->
-    pqueue3:new().
+    pqueue3:new([{priorities, 41}]).
 
 priority_queue_set(Queue, P, Value) ->
     priority_queue:in(Value, (P rem 41) - 20, Queue).
