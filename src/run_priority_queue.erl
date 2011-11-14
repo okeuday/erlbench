@@ -16,6 +16,9 @@ data2() ->
 data3() ->
     pqueue2:new().
 
+data4() ->
+    pqueue3:new().
+
 priority_queue_set(Queue, P, Value) ->
     priority_queue:in(Value, (P rem 41) - 20, Queue).
 
@@ -24,6 +27,9 @@ pqueue_set(Queue, P, Value) ->
 
 pqueue2_set(Queue, P, Value) ->
     pqueue2:in(Value, (P rem 41) - 20, Queue).
+
+pqueue3_set(Queue, P, Value) ->
+    pqueue3:in(Value, (P rem 41) - 20, Queue).
 
 priority_queue_get(Queue) ->
     {{value, _}, NewQueue} = priority_queue:out(Queue),
@@ -35,6 +41,10 @@ pqueue_get(Queue) ->
     
 pqueue2_get(Queue) ->
     {{value, _}, NewQueue} = pqueue2:out(Queue),
+    NewQueue.
+
+pqueue3_get(Queue) ->
+    {{value, _}, NewQueue} = pqueue3:out(Queue),
     NewQueue.
 
 get(_, _, 0) ->
@@ -60,9 +70,12 @@ test(N) ->
     {G2, _} = timer:tc(run_priority_queue, get, [fun pqueue_get/1, D2, N]),
     {S3, D3} = timer:tc(run_priority_queue, set, [fun pqueue2_set/3, data3(), N]),
     {G3, _} = timer:tc(run_priority_queue, get, [fun pqueue2_get/1, D3, N]),
+    {S4, D4} = timer:tc(run_priority_queue, set, [fun pqueue3_set/3, data4(), N]),
+    {G4, _} = timer:tc(run_priority_queue, get, [fun pqueue3_get/1, D4, N]),
     [
         #result{name = "priority_queue",       get =  G1, set =  S1},
         #result{name = "pqueue",               get =  G2, set =  S2},
-        #result{name = "pqueue2",                 get =  G3, set =  S3}
+        #result{name = "pqueue2",              get =  G3, set =  S3},
+        #result{name = "pqueue3",              get =  G4, set =  S4}
     ].
 
