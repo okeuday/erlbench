@@ -21,7 +21,8 @@
 %-define(TESTS, [pseudo_randomness]).
 
 -define(COUNTS, [1000000]).
--define(TESTS, [run_priority_queue]).
+-define(TESTS, [pqueue_priority0, pqueue_priorities2, pqueue_priorities41,
+                pqueue_priorities64]).
 
 %-define(COUNTS, [1000, 10000, 50000]).
 %-define(TESTS, [string_key, integer_key, list_traversal]).

@@ -35,12 +35,15 @@ BUILT=\
     ebin/pqueue.beam \
     ebin/pqueue2.beam \
     ebin/pqueue3.beam \
+    ebin/pqueue_priority0.beam \
+    ebin/pqueue_priorities2.beam \
+    ebin/pqueue_priorities41.beam \
+    ebin/pqueue_priorities64.beam \
     ebin/priority_queue.beam \
     ebin/queue_in_out.beam \
     ebin/rbdict.beam \
     ebin/rfc4627.beam \
     ebin/run.beam \
-    ebin/run_priority_queue.beam \
     ebin/string_key.beam \
     ebin/trie.beam \
     ebin/uuid_creation.beam \
