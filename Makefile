@@ -35,6 +35,7 @@ BUILT=\
     ebin/pqueue.beam \
     ebin/pqueue2.beam \
     ebin/pqueue3.beam \
+    ebin/pqueue4.beam \
     ebin/pqueue_priority0.beam \
     ebin/pqueue_priorities2.beam \
     ebin/pqueue_priorities41.beam \
