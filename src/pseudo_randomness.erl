@@ -19,6 +19,9 @@ test_crypto() ->
 test_random() ->
     random:uniform(10).
 
+test_random_wh06() ->
+    random_wh06:uniform(10).
+
 test_reductions1() ->
     % not very uniform
     {reductions, I} = erlang:process_info(self(), reductions),
@@ -90,6 +93,9 @@ test(N) ->
     counts_init(),
     {Test5, _} = timer:tc(pseudo_randomness, run, [N, fun test_reductions2/0]),
     counts_print("erlang:statistics(reductions)"),
+    counts_init(),
+    {Test6, _} = timer:tc(pseudo_randomness, run, [N, fun test_random_wh06/0]),
+    counts_print("random:uniform_wh06/1"),
 
     %% results
     [
@@ -97,6 +103,7 @@ test(N) ->
         #result{name = "crypto:rand_uniform/2",      get =  Test2},
         #result{name = "random:uniform/1",           get =  Test3},
         #result{name = "erlang:process_info(,r)",    get =  Test4},
-        #result{name = "erlang:statistics(r)",       get =  Test5}
+        #result{name = "erlang:statistics(r)",       get =  Test5},
+        #result{name = "random:uniform_wh06/1",      get =  Test6}
     ].
 

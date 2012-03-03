@@ -42,6 +42,7 @@ BUILT=\
     ebin/pqueue_priorities64.beam \
     ebin/priority_queue.beam \
     ebin/queue_in_out.beam \
+    ebin/random_wh06.beam \
     ebin/rbdict.beam \
     ebin/rfc4627.beam \
     ebin/run.beam \
