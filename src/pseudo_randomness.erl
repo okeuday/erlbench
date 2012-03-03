@@ -87,12 +87,13 @@ test(N) ->
     counts_init(),
     {Test3, _} = timer:tc(pseudo_randomness, run, [N, fun test_random/0]),
     counts_print("random:uniform/1"),
-    counts_init(),
-    {Test4, _} = timer:tc(pseudo_randomness, run, [N, fun test_reductions1/0]),
-    counts_print("erlang:process_info(self(), reductions)"),
-    counts_init(),
-    {Test5, _} = timer:tc(pseudo_randomness, run, [N, fun test_reductions2/0]),
-    counts_print("erlang:statistics(reductions)"),
+    % not uniform
+    %counts_init(),
+    %{Test4, _} = timer:tc(pseudo_randomness, run, [N, fun test_reductions1/0]),
+    %counts_print("erlang:process_info(self(), reductions)"),
+    %counts_init(),
+    %{Test5, _} = timer:tc(pseudo_randomness, run, [N, fun test_reductions2/0]),
+    %counts_print("erlang:statistics(reductions)"),
     counts_init(),
     {Test6, _} = timer:tc(pseudo_randomness, run, [N, fun test_random_wh06/0]),
     counts_print("random:uniform_wh06/1"),
@@ -102,8 +103,8 @@ test(N) ->
         #result{name = "erlang:now/0",               get =  Test1},
         #result{name = "crypto:rand_uniform/2",      get =  Test2},
         #result{name = "random:uniform/1",           get =  Test3},
-        #result{name = "erlang:process_info(,r)",    get =  Test4},
-        #result{name = "erlang:statistics(r)",       get =  Test5},
+        %#result{name = "erlang:process_info(,r)",    get =  Test4},
+        %#result{name = "erlang:statistics(r)",       get =  Test5},
         #result{name = "random:uniform_wh06/1",      get =  Test6}
     ].
 
