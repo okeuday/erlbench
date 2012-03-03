@@ -86,7 +86,7 @@ reseed({A1, A2, A3, A4}) ->
     end.        
 
 %% uniform()
-%%  Returns a random float between 0 and 1.
+%%  Returns a random integer between 0 and 21267638781707063560975648195455661512.
 
 -spec uniform() -> float().
 
@@ -112,19 +112,19 @@ uniform() ->
     I.
 
 %% uniform(N) -> I
-%%  Given an integer N >= 1, N < 21267638781707063560975648195455661513,
+%%  Given an integer N >= 1, N =< 21267638781707063560975648195455661513,
 %%  uniform(N) returns a random integer
 %%  between 1 and N.
 
 -spec uniform(pos_integer()) -> pos_integer().
 
-uniform(N) when is_integer(N), N >= 1, N < 21267638781707063560975648195455661513 ->
+uniform(N) when is_integer(N), N >= 1, N =< 21267638781707063560975648195455661513 ->
     (uniform() rem N) + 1.
 
 %%% Functional versions
 
 %% uniform_s(State) -> {F, NewState}
-%%  Returns a random float between 0 and 1.
+%%  Returns a random integer between 0 and 21267638781707063560975648195455661512.
 
 -spec uniform_s(ran()) -> {float(), ran()}.
 
@@ -143,13 +143,13 @@ uniform_s({A1, A2, A3, A4}) ->
     {I, {B1, B2, B3, B4}}.
 
 %% uniform_s(N, State) -> {I, NewState}
-%%  Given an integer N >= 1, N < 21267638781707063560975648195455661513,
+%%  Given an integer N >= 1, N =< 21267638781707063560975648195455661513,
 %%  uniform(N) returns a random integer
 %%  between 1 and N.
 
 -spec uniform_s(pos_integer(), ran()) -> {integer(), ran()}.
 
-uniform_s(N, State0) when is_integer(N), N >= 1, N < 21267638781707063560975648195455661513 ->
+uniform_s(N, State0) when is_integer(N), N >= 1, N =< 21267638781707063560975648195455661513 ->
     {I, State1} = uniform_s(State0),
     {(I rem N) + 1, State1}.
 
