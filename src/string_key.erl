@@ -262,7 +262,7 @@ test(N) ->
 read_wordlist() ->
     {ok, F} = file:open(?WORDLIST, [read_ahead, raw, read]),
     Array = array:new([{size, 524288}, {default, -1}, {fixed, false}]),
-    shuffle(read_wordlist(0, F, Array)).
+    shuffle:shuffle(read_wordlist(0, F, Array)).
 
 read_wordlist(I, F, Array) ->
     case file:read_line(F) of
@@ -272,17 +272,4 @@ read_wordlist(I, F, Array) ->
         eof ->
             array:fix(array:resize(I, Array))
     end.
-
-shuffle(Array) ->
-    % Fisher-Yates shuffle
-    shuffle(array:size(Array) - 1, Array).
-
-shuffle(0, Array) ->
-    Array;
-
-shuffle(I, Array) ->
-    J = random:uniform(I + 1) - 1,
-    Temp = array:get(I, Array),
-    NewArray = array:set(J, Temp, array:set(I, array:get(J, Array), Array)),
-    shuffle(I - 1, NewArray).
 

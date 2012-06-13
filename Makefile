@@ -6,6 +6,7 @@ test: beam
 
 BUILT=\
     ebin/aadict.beam \
+    ebin/btree7.beam \
     ebin/ejson_decode.beam \
     ebin/ejson_encode.beam \
     ebin/ejson.beam \
@@ -31,6 +32,7 @@ BUILT=\
     ebin/mochijson2.beam \
     ebin/mochinum.beam \
     ebin/nicefloats.beam \
+    ebin/ntree.beam \
     ebin/pseudo_randomness.beam \
     ebin/pqueue.beam \
     ebin/pqueue2.beam \
@@ -46,6 +48,7 @@ BUILT=\
     ebin/rbdict.beam \
     ebin/rfc4627.beam \
     ebin/run.beam \
+    ebin/shuffle.beam \
     ebin/string_key.beam \
     ebin/trie.beam \
     ebin/uuid_creation.beam \
