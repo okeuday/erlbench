@@ -74,16 +74,16 @@ test() ->
     test(10000).
 
 test(N) ->
-    {S8, D8} = timer:tc(run_priority_queue, set, [fun priority_queue_set_0/3, data8(), N]),
-    {G8, _} = timer:tc(run_priority_queue, get, [fun priority_queue_get/1, D8, N]),
-    {S9, D9} = timer:tc(run_priority_queue, set, [fun pqueue_set_0/3, data9(), N]),
-    {G9, _} = timer:tc(run_priority_queue, get, [fun pqueue_get/1, D9, N]),
-    {S10, D10} = timer:tc(run_priority_queue, set, [fun pqueue2_set_0/3, data10(), N]),
-    {G10, _} = timer:tc(run_priority_queue, get, [fun pqueue2_get/1, D10, N]),
-    {S11, D11} = timer:tc(run_priority_queue, set, [fun pqueue3_set_0/3, data11(), N]),
-    {G11, _} = timer:tc(run_priority_queue, get, [fun pqueue3_get/1, D11, N]),
-    {S12, D12} = timer:tc(run_priority_queue, set, [fun pqueue4_set_0/3, data12(), N]),
-    {G12, _} = timer:tc(run_priority_queue, get, [fun pqueue4_get/1, D12, N]),
+    {S8, D8} = timer:tc(?MODULE, set, [fun priority_queue_set_0/3, data8(), N]),
+    {G8, _} = timer:tc(?MODULE, get, [fun priority_queue_get/1, D8, N]),
+    {S9, D9} = timer:tc(?MODULE, set, [fun pqueue_set_0/3, data9(), N]),
+    {G9, _} = timer:tc(?MODULE, get, [fun pqueue_get/1, D9, N]),
+    {S10, D10} = timer:tc(?MODULE, set, [fun pqueue2_set_0/3, data10(), N]),
+    {G10, _} = timer:tc(?MODULE, get, [fun pqueue2_get/1, D10, N]),
+    {S11, D11} = timer:tc(?MODULE, set, [fun pqueue3_set_0/3, data11(), N]),
+    {G11, _} = timer:tc(?MODULE, get, [fun pqueue3_get/1, D11, N]),
+    {S12, D12} = timer:tc(?MODULE, set, [fun pqueue4_set_0/3, data12(), N]),
+    {G12, _} = timer:tc(?MODULE, get, [fun pqueue4_get/1, D12, N]),
     [
         #result{name = "priority_queue",       get =  G8, set =  S8},
         #result{name = "pqueue",               get =  G9, set =  S9},
