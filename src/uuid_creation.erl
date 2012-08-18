@@ -24,12 +24,12 @@ test(N) ->
 
     State = uuid:new(self()),
     String = string:chars($X, 64),
-    {V1, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v1/1, State]),
-    {V3, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v3/1, String]),
-    {V4, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v4/0]),
-    {V4a, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v4_urandom_bigint/0]),
-    {V4b, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v4_urandom_native/0]),
-    {V5, _} = timer:tc(uuid_creation, run, [N, fun uuid:get_v5/1, String]),
+    {V1, _} = timer:tc(?MODULE, run, [N, fun uuid:get_v1/1, State]),
+    {V3, _} = timer:tc(?MODULE, run, [N, fun uuid:get_v3/1, String]),
+    {V4, _} = timer:tc(?MODULE, run, [N, fun uuid:get_v4/0]),
+    {V4a, _} = timer:tc(?MODULE, run, [N, fun uuid:get_v4_urandom_bigint/0]),
+    {V4b, _} = timer:tc(?MODULE, run, [N, fun uuid:get_v4_urandom_native/0]),
+    {V5, _} = timer:tc(?MODULE, run, [N, fun uuid:get_v5/1, String]),
 
     %% results
     [

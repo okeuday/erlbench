@@ -188,56 +188,56 @@ test(N) ->
     Words = array:to_list(array:resize(N, read_wordlist())),
 
     %% gb_trees
-    {S1, D1} = timer:tc(string_key, set, [fun gb_trees_set/3, data1(N), Words]),
-    {G1, _} = timer:tc(string_key, get, [fun gb_trees_get/2, D1, Words]),
+    {S1, D1} = timer:tc(?MODULE, set, [fun gb_trees_set/3, data1(N), Words]),
+    {G1, _} = timer:tc(?MODULE, get, [fun gb_trees_get/2, D1, Words]),
     %% rbdict
-    {S2, D2} = timer:tc(string_key, set, [fun rbdict_set/3, data2(N), Words]),
-    {G2, _} = timer:tc(string_key, get, [fun rbdict_get/2, D2, Words]),
+    {S2, D2} = timer:tc(?MODULE, set, [fun rbdict_set/3, data2(N), Words]),
+    {G2, _} = timer:tc(?MODULE, get, [fun rbdict_get/2, D2, Words]),
     %% aadict
-    {S3, D3} = timer:tc(string_key, set, [fun aadict_set/3, data3(N), Words]),
-    {G3, _} = timer:tc(string_key, get, [fun aadict_get/2, D3, Words]),
+    {S3, D3} = timer:tc(?MODULE, set, [fun aadict_set/3, data3(N), Words]),
+    {G3, _} = timer:tc(?MODULE, get, [fun aadict_get/2, D3, Words]),
     %% orddict
-    %{S4, D4} = timer:tc(string_key, set, [fun orddict_set/3, data4(N), Words]),
-    %{G4, _} = timer:tc(string_key, get, [fun orddict_get/2, D4, Words]),
+    %{S4, D4} = timer:tc(?MODULE, set, [fun orddict_set/3, data4(N), Words]),
+    %{G4, _} = timer:tc(?MODULE, get, [fun orddict_get/2, D4, Words]),
     %% dict
-    {S5, D5} = timer:tc(string_key, set, [fun dict_set/3, data5(N), Words]),
-    {G5, _} = timer:tc(string_key, get, [fun dict_get/2, D5, Words]),
+    {S5, D5} = timer:tc(?MODULE, set, [fun dict_set/3, data5(N), Words]),
+    {G5, _} = timer:tc(?MODULE, get, [fun dict_get/2, D5, Words]),
     %% trie
-    {S6, D6} = timer:tc(string_key, set, [fun trie_set/3, data6(N), Words]),
-    {G6, _} = timer:tc(string_key, get, [fun trie_get/2, D6, Words]),
+    {S6, D6} = timer:tc(?MODULE, set, [fun trie_set/3, data6(N), Words]),
+    {G6, _} = timer:tc(?MODULE, get, [fun trie_get/2, D6, Words]),
     %% ets
-    {S7, D7} = timer:tc(string_key, set, [fun ets_set/3, data7(N), Words]),
-    {G7, _} = timer:tc(string_key, get, [fun ets_get/2, D7, Words]),
+    {S7, D7} = timer:tc(?MODULE, set, [fun ets_set/3, data7(N), Words]),
+    {G7, _} = timer:tc(?MODULE, get, [fun ets_get/2, D7, Words]),
     ets:delete(D7),
     %% process dictionary
-    {S8, D8} = timer:tc(string_key, set, [fun pdict_set/3, data8(N), Words]),
-    {G8, _} = timer:tc(string_key, get, [fun pdict_get/2, D8, Words]),
+    {S8, D8} = timer:tc(?MODULE, set, [fun pdict_set/3, data8(N), Words]),
+    {G8, _} = timer:tc(?MODULE, get, [fun pdict_get/2, D8, Words]),
     %% ets with 10 concurrent accesses
-    {_, D9} = timer:tc(string_key, set, [fun ets_set/3, data9(N), Words]),
-    {G9, _} = timer:tc(string_key, get_concurrent, [10, [fun ets_get/2, D9, Words]]),
+    {_, D9} = timer:tc(?MODULE, set, [fun ets_set/3, data9(N), Words]),
+    {G9, _} = timer:tc(?MODULE, get_concurrent, [10, [fun ets_get/2, D9, Words]]),
     ets:delete(D9),
     %% hash table
-    %{S10, D10} = timer:tc(string_key, set, [fun hasht_set/3, data10(N), Words]),
-    %{G10, _} = timer:tc(string_key, get, [fun hasht_get/2, D10, Words]),
+    %{S10, D10} = timer:tc(?MODULE, set, [fun hasht_set/3, data10(N), Words]),
+    %{G10, _} = timer:tc(?MODULE, get, [fun hasht_get/2, D10, Words]),
     %% hash table layered
-    %{S11, D11} = timer:tc(string_key, set, [fun hashtl2_set/3, data11(N), Words]),
-    %{G11, _} = timer:tc(string_key, get, [fun hashtl2_get/2, D11, Words]),
+    %{S11, D11} = timer:tc(?MODULE, set, [fun hashtl2_set/3, data11(N), Words]),
+    %{G11, _} = timer:tc(?MODULE, get, [fun hashtl2_get/2, D11, Words]),
     %% hash table layered
-    %{S12, D12} = timer:tc(string_key, set, [fun hashtl3_set/3, data12(N), Words]),
-    %{G12, _} = timer:tc(string_key, get, [fun hashtl3_get/2, D12, Words]),
+    %{S12, D12} = timer:tc(?MODULE, set, [fun hashtl3_set/3, data12(N), Words]),
+    %{G12, _} = timer:tc(?MODULE, get, [fun hashtl3_get/2, D12, Words]),
     %% hash table layered
-    %{S13, D13} = timer:tc(string_key, set, [fun hashtl4_set/3, data13(N), Words]),
-    %{G13, _} = timer:tc(string_key, get, [fun hashtl4_get/2, D13, Words]),
+    %{S13, D13} = timer:tc(?MODULE, set, [fun hashtl4_set/3, data13(N), Words]),
+    %{G13, _} = timer:tc(?MODULE, get, [fun hashtl4_get/2, D13, Words]),
     %% hash table layered
-    {S14, D14} = timer:tc(string_key, set, [fun hashtl_set/3, data14(N), Words]),
-    {G14, _} = timer:tc(string_key, get, [fun hashtl_get/2, D14, Words]),
+    {S14, D14} = timer:tc(?MODULE, set, [fun hashtl_set/3, data14(N), Words]),
+    {G14, _} = timer:tc(?MODULE, get, [fun hashtl_get/2, D14, Words]),
     %% ets
-    {S15, D15} = timer:tc(string_key, set, [fun ets_set/3, data15(N), Words]),
-    {G15, _} = timer:tc(string_key, get, [fun ets_get/2, D15, Words]),
+    {S15, D15} = timer:tc(?MODULE, set, [fun ets_set/3, data15(N), Words]),
+    {G15, _} = timer:tc(?MODULE, get, [fun ets_get/2, D15, Words]),
     ets:delete(D15),
     %% ets with 10 concurrent accesses
-    {_, D16} = timer:tc(string_key, set, [fun ets_set/3, data16(N), Words]),
-    {G16, _} = timer:tc(string_key, get_concurrent, [10, [fun ets_get/2, D16, Words]]),
+    {_, D16} = timer:tc(?MODULE, set, [fun ets_set/3, data16(N), Words]),
+    {G16, _} = timer:tc(?MODULE, get_concurrent, [10, [fun ets_get/2, D16, Words]]),
     ets:delete(D16),
     %% results
     [

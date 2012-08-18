@@ -44,11 +44,11 @@ test() ->
 
 test(N) ->
     %% queue
-    {S1, D1} = timer:tc(queue_in_out, set, [fun queue_set/2, data1(N), N]),
-    {G1, _} = timer:tc(queue_in_out, get, [fun queue_get/1, D1, N]),
+    {S1, D1} = timer:tc(?MODULE, set, [fun queue_set/2, data1(N), N]),
+    {G1, _} = timer:tc(?MODULE, get, [fun queue_get/1, D1, N]),
     %% lqueue
-    {S2, D2} = timer:tc(queue_in_out, set, [fun lqueue_set/2, data2(N), N]),
-    {G2, _} = timer:tc(queue_in_out, get, [fun lqueue_get/1, D2, N]),
+    {S2, D2} = timer:tc(?MODULE, set, [fun lqueue_set/2, data2(N), N]),
+    {G2, _} = timer:tc(?MODULE, get, [fun lqueue_get/1, D2, N]),
     %% results
     [
         #result{name = "queue",               get =  G1, set =  S1},

@@ -37,6 +37,10 @@ test_stats_io() ->
     {{input, I1},{output, I2}} = erlang:statistics(io),
     ((I1 bxor I2) rem 10) + 1.
 
+test_timestamp() ->
+    {_, _, I} = os:timestamp(),
+    (I rem 10) + 1.
+
 -ifdef(PRINT_DISTRIBUTION).
 counts_init() ->
     lists:foreach(fun(I) ->
@@ -79,24 +83,27 @@ run(N, F) ->
 
 test(N) ->
     counts_init(),
-    {Test1, _} = timer:tc(pseudo_randomness, run, [N, fun test_now/0]),
+    {Test1, _} = timer:tc(?MODULE, run, [N, fun test_now/0]),
     counts_print("erlang:now/0"),
     counts_init(),
-    {Test2, _} = timer:tc(pseudo_randomness, run, [N, fun test_crypto/0]),
+    {Test2, _} = timer:tc(?MODULE, run, [N, fun test_crypto/0]),
     counts_print("crypto:rand_uniform/2"),
     counts_init(),
-    {Test3, _} = timer:tc(pseudo_randomness, run, [N, fun test_random/0]),
+    {Test3, _} = timer:tc(?MODULE, run, [N, fun test_random/0]),
     counts_print("random:uniform/1"),
     % not uniform
     %counts_init(),
-    %{Test4, _} = timer:tc(pseudo_randomness, run, [N, fun test_reductions1/0]),
+    %{Test4, _} = timer:tc(?MODULE, run, [N, fun test_reductions1/0]),
     %counts_print("erlang:process_info(self(), reductions)"),
     %counts_init(),
-    %{Test5, _} = timer:tc(pseudo_randomness, run, [N, fun test_reductions2/0]),
+    %{Test5, _} = timer:tc(?MODULE, run, [N, fun test_reductions2/0]),
     %counts_print("erlang:statistics(reductions)"),
     counts_init(),
-    {Test6, _} = timer:tc(pseudo_randomness, run, [N, fun test_random_wh06/0]),
-    counts_print("random:uniform_wh06/1"),
+    {Test6, _} = timer:tc(?MODULE, run, [N, fun test_random_wh06/0]),
+    counts_print("os:timestamp/0"),
+    counts_init(),
+    {Test7, _} = timer:tc(?MODULE, run, [N, fun test_timestamp/0]),
+    counts_print("os:timestamp/0"),
 
     %% results
     [
@@ -105,6 +112,7 @@ test(N) ->
         #result{name = "random:uniform/1",           get =  Test3},
         %#result{name = "erlang:process_info(,r)",    get =  Test4},
         %#result{name = "erlang:statistics(r)",       get =  Test5},
-        #result{name = "random:uniform_wh06/1",      get =  Test6}
+        #result{name = "random:uniform_wh06/1",      get =  Test6},
+        #result{name = "os:timestamp/0",             get =  Test7}
     ].
 
