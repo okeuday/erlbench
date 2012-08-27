@@ -80,9 +80,9 @@ test() ->
                         MinUpdate = round(Value#result.update /
                                           Min#result.update, 1),
                         L ++ io_lib:format("~20s "
-                                           "get: ~10w µs (~5w), "
-                                           "set: ~10w µs (~5w), "
-                                           "update: ~10w µs (~5w)~n", [
+                                           "get: ~10w us (~5w), "
+                                           "set: ~10w us (~5w), "
+                                           "update: ~10w us (~5w)~n", [
                                             Value#result.name,
                                             Value#result.get,
                                             MinGet,
@@ -97,8 +97,8 @@ test() ->
                         MinSet = round(Value#result.set /
                                        Min#result.set, 1),
                         L ++ io_lib:format("~20s "
-                                           "get: ~10w µs (~5w), "
-                                           "set: ~10w µs (~5w)~n", [
+                                           "get: ~10w us (~5w), "
+                                           "set: ~10w us (~5w)~n", [
                                             Value#result.name,
                                             Value#result.get,
                                             MinGet,
@@ -108,7 +108,7 @@ test() ->
                         MinGet = round(Value#result.get /
                                        Min#result.get, 1),
                         L ++ io_lib:format("~20s "
-                                           "get: ~10w µs (~5w)~n", [
+                                           "get: ~10w us (~5w)~n", [
                                             Value#result.name,
                                             Value#result.get,
                                             MinGet])
