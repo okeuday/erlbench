@@ -20,7 +20,7 @@ test_random() ->
     random:uniform(10).
 
 test_random_wh06() ->
-    random_wh06:uniform(10).
+    random_wh06_int:uniform(10).
 
 test_reductions1() ->
     % not very uniform
@@ -112,7 +112,7 @@ test(N) ->
         #result{name = "random:uniform/1",           get =  Test3},
         %#result{name = "erlang:process_info(,r)",    get =  Test4},
         %#result{name = "erlang:statistics(r)",       get =  Test5},
-        #result{name = "random:uniform_wh06/1",      get =  Test6},
+        #result{name = "random_wh06_int:uniform/1",  get =  Test6},
         #result{name = "os:timestamp/0",             get =  Test7}
     ].
 
