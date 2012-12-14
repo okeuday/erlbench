@@ -55,8 +55,8 @@ data9(_) ->
 data10(_) ->
     undefined.
 
-data11(_) ->
-    ets:new(ets_test_2, [set, {read_concurrency, true}]).
+%data11(_) ->
+%    ets:new(ets_test_2, [set, {read_concurrency, true}]).
 
 %data12(N) ->
 %    hasht:new(N).
@@ -76,8 +76,8 @@ data16(N) ->
 data17(_) ->
     ets:new(ets_test_3, [ordered_set]).
 
-data18(_) ->
-    ets:new(ets_test_4, [ordered_set, {read_concurrency, true}]).
+%data18(_) ->
+%    ets:new(ets_test_4, [ordered_set, {read_concurrency, true}]).
 
 %data19(_) ->
 %    ntree:new(10).

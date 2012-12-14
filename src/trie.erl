@@ -11,8 +11,8 @@
 %%%  Coded in Alphanumeric, D.R.Morrison (1968)).
 %%%
 %%% This Erlang trie implementation uses string (list of integers) keys and
-%%% is able to get performance close to the process dictionary when doing
-%%% key lookups (find or fetch, see http://okeuday.livejournal.com/16941.html).
+%%% is able to get performance close to the process dictionary when doing key
+%%% lookups (find or fetch, see [http://okeuday.livejournal.com/16941.html]).
 %%% Utilizing this trie, it is possible to avoid generating dynamic atoms
 %%% in various contexts.  Also, an added benefit to using this trie is that
 %%% the traversals preserve alphabetical ordering.
@@ -20,7 +20,7 @@
 %%%
 %%% BSD LICENSE
 %%% 
-%%% Copyright (c) 2010-2011, Michael Truog <mjtruog at gmail dot com>
+%%% Copyright (c) 2010-2012, Michael Truog <mjtruog at gmail dot com>
 %%% All rights reserved.
 %%% 
 %%% Redistribution and use in source and binary forms, with or without
@@ -55,8 +55,8 @@
 %%% DAMAGE.
 %%%
 %%% @author Michael Truog <mjtruog [at] gmail (dot) com>
-%%% @copyright 2010-2011 Michael Truog
-%%% @version 0.1.9 {@date} {@time}
+%%% @copyright 2010-2012 Michael Truog
+%%% @version 1.0.0 {@date} {@time}
 %%%------------------------------------------------------------------------
 
 -module(trie).
@@ -71,11 +71,13 @@
          fetch_keys_similar/2,
          filter/2,
          find/2,
+         find_match/2,
          find_prefix/2,
          find_similar/2,
          fold/3,
          foldl/3,
          foldr/3,
+         fold_match/4,
          fold_similar/4,
          foldl_similar/4,
          foldr_similar/4,
@@ -83,12 +85,15 @@
          from_list/1,
          is_key/2,
          is_prefix/2,
+         is_prefixed/2,
+         is_prefixed/3,
          iter/2,
          itera/3,
          map/2,
          merge/3,
          new/0,
          new/1,
+         pattern_parse/2,
          prefix/3,
          size/1,
          store/2,
@@ -346,7 +351,133 @@ find(_, []) ->
 
 %%-------------------------------------------------------------------------
 %% @doc
+%% ===Find a match with patterns held within a trie.===
+%% All patterns held within the trie use a wildcard character "*" to represent
+%% a regex of ".+".  "**" within the trie will result in undefined behavior
+%% (the pattern is malformed).  The function will search for the most specific
+%% match possible, given the input string and the trie contents.  The input
+%% string must not contain wildcard characters, otherwise badarg is thrown.
+%% If you instead want to supply a pattern string to match the contents of
+%% the trie, see fold_match/4.
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec find_match(string(), trie()) -> {ok, any(), any()} | 'error'.
+
+find_match(_, []) ->
+    error;
+
+find_match(Match, Node) ->
+    find_match_node(Match, [], Node).
+
+find_match_node([$* | _], _, _) ->
+    erlang:exit(badarg);
+
+find_match_node([H | T] = Match, Key, {I0, I1, Data} = Node)
+    when is_integer(H) ->
+    Result = if
+        H < I0; H > I1 ->
+            error;
+        true ->
+            {ChildNode, Value} = erlang:element(H - I0 + 1, Data),
+            if
+                T =:= [] ->
+                    if
+                        is_tuple(ChildNode); ChildNode =:= [] ->
+                            if
+                                Value =:= error ->
+                                    error;
+                                true ->
+                                    {ok, lists:reverse([H | Key]), Value}
+                            end;
+                        true ->
+                            error
+                    end;
+                true ->
+                    if
+                        is_tuple(ChildNode) ->
+                            find_match_node(T, [H | Key], ChildNode);
+                        Value =:= error ->
+                            error;
+                        true ->
+                            case wildcard_match_lists(ChildNode, T) of
+                                true ->
+                                    {ok, lists:reverse([H | Key]) ++
+                                     ChildNode, Value};
+                                false ->
+                                    error
+                            end
+                    end
+            end
+    end,
+    if
+        Result =:= error ->
+            find_match_element_1(Match, Key, Node);
+        true ->
+            Result
+    end.
+
+find_match_element_1([_ | T] = Match, Key, {I0, I1, Data})
+    when $* >= I0, $* =< I1 ->
+    {ChildNode, Value} = erlang:element($* - I0 + 1, Data),
+    if
+        is_tuple(ChildNode) ->
+            find_match_element_N(T, [$* | Key], Value, ChildNode);
+        Value =:= error ->
+            error;
+        true ->
+            Suffix = [$* | ChildNode],
+            case wildcard_match_lists(Suffix, Match) of
+                true ->
+                    {ok, lists:reverse(Key) ++ Suffix, Value};
+                false ->
+                    error
+            end
+    end;
+
+find_match_element_1(_, _, _) ->
+    error.
+
+find_match_element_N([], _, error, _) ->
+    error;
+
+find_match_element_N([], Key, WildValue, _) ->
+    {ok, lists:reverse(Key), WildValue};
+
+find_match_element_N([$* | _], _, _, _) ->
+    erlang:exit(badarg);
+
+find_match_element_N([H | T], Key, WildValue, {I0, I1, _} = Node)
+    when H < I0; H > I1 ->
+    find_match_element_N(T, Key, WildValue, Node);
+
+find_match_element_N([H | T], Key, WildValue, {I0, _, Data} = Node) ->
+    {ChildNode, Value} = erlang:element(H - I0 + 1, Data),
+    if
+        is_tuple(ChildNode) ->
+            case find_match_node(T, [H | Key], ChildNode) of
+                error ->
+                    find_match_element_N(T, Key, WildValue, Node);
+                Result ->
+                    Result
+            end;
+        Value =:= error ->
+            find_match_element_N(T, Key, WildValue, Node);
+        true ->
+            case wildcard_match_lists(ChildNode, T) of
+                true ->
+                    {ok, lists:reverse([H | Key]) ++ ChildNode, Value};
+                false ->
+                    find_match_element_N(T, Key, WildValue, Node)
+            end
+    end.
+
+%%-------------------------------------------------------------------------
+%% @doc
 %% ===Find a value in a trie by prefix.===
+%% The atom 'prefix' is returned if the string supplied is a prefix
+%% for a key that has previously been stored within the trie, but no
+%% value was found, since there was no exact match for the string supplied.
 %% @end
 %%-------------------------------------------------------------------------
 
@@ -358,42 +489,29 @@ find_prefix([H | _], {I0, I1, _})
 
 find_prefix([H], {I0, _, Data})
     when is_integer(H) ->
-    {Node, Value} = erlang:element(H - I0 + 1, Data),
-    if
-        is_tuple(Node) ->
-            if
-                Value =:= error ->
-                    prefix;
-                true ->
-                    {ok, Value}
-            end;
-        Node =:= [] ->
-            if
-                Value =:= error ->
-                    error;
-                true ->
-                    {ok, Value}
-            end;
-        true ->
+    case erlang:element(H - I0 + 1, Data) of
+        {{_, _, _}, error} ->
+            prefix;
+        {{_, _, _}, Value} ->
+            {ok, Value};
+        {_, error} ->
+            error;
+        {[], Value} ->
+            {ok, Value};
+        {_, _} ->
             prefix
     end;
 
 find_prefix([H | T], {I0, _, Data})
     when is_integer(H) ->
-    {Node, Value} = erlang:element(H - I0 + 1, Data),
-    case Node of
-        {_, _, _} ->
+    case erlang:element(H - I0 + 1, Data) of
+        {{_, _, _} = Node, _} ->
             find_prefix(T, Node);
-        [] ->
-            prefix;
-        T ->
-            if
-                Value =:= error ->
-                    error;
-                true ->
-                    {ok, Value}
-            end;
-        L ->
+        {_, error} ->
+            error;
+        {T, Value} ->
+            {ok, Value};
+        {L, _} ->
             case lists:prefix(T, L) of
                 true ->
                     prefix;
@@ -483,6 +601,13 @@ find_similar_element(Key, Node) ->
 
 fold(F, A, Node) when is_function(F, 3) ->
     foldl(F, A, Node).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Fold a function over the trie.===
+%% Traverses in alphabetical order.
+%% @end
+%%-------------------------------------------------------------------------
 
 -spec foldl(F :: fun((string(), any(), any()) -> any()),
             A :: any(),
@@ -575,6 +700,220 @@ foldr_element(F, A, I, Offset, Key, Data) ->
 
 %%-------------------------------------------------------------------------
 %% @doc
+%% ===Fold a function over the keys within a trie that matches a pattern.===
+%% Traverses in alphabetical order.  Uses "*" as a wildcard character
+%% within the pattern (it acts like a ".+" regex, and "**" is forbidden).
+%% The trie keys must not contain wildcard characters, otherwise badarg
+%% is thrown. If you want to match a specific string without wildcards
+%% on trie values that contain wildcard characters, see find_match/2.
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec fold_match(Match :: string(),
+                 F :: fun((string(), any(), any()) -> any()),
+                 A :: any(),
+                 Node :: trie()) -> any().
+
+fold_match(_, _, A, []) ->
+    A;
+
+fold_match(Match, F, A, Node) ->
+    fold_match_node_1(Match, F, A, [], Node).
+
+fold_match_node_1([$*, $* | _], _, _, _, _) ->
+    erlang:exit(badarg);
+
+fold_match_node_1([$* | _] = Match, F, A, Prefix, {I0, I1, Data}) ->
+    fold_match_element_1(Match, F, A, 1, I1 - I0 + 2, I0 - 1,
+                         Prefix, [], Data);
+
+fold_match_node_1([H | _], _, A, _, {I0, I1, _})
+    when H < I0; H > I1 ->
+    A;
+
+fold_match_node_1([H], F, A, Prefix, {I0, _, Data})
+    when is_integer(H) ->
+    {ChildNode, Value} = erlang:element(H - I0 + 1, Data),
+    if
+        Value =/= error ->
+            if
+                is_tuple(ChildNode); ChildNode =:= [] ->
+                    F(lists:reverse([H | Prefix]), Value, A);
+                true ->
+                    A
+            end;
+        true ->
+            A
+    end;
+
+fold_match_node_1([H | T], F, A, Prefix, {I0, _, Data})
+    when is_integer(H) ->
+    {ChildNode, Value} = erlang:element(H - I0 + 1, Data),
+    NewPrefix = [H | Prefix],
+    if
+        is_tuple(ChildNode) ->
+            fold_match_node_1(T, F, A, NewPrefix, ChildNode);
+        Value =/= error ->
+            case wildcard_match_lists(T, ChildNode) of
+                true ->
+                    F(lists:reverse(NewPrefix) ++ ChildNode, Value, A);
+                false ->
+                    A
+            end;
+        true ->
+            A
+    end.
+
+fold_match_element_1(_, _, A, N, N, _, _, _, _) ->
+    A;
+
+fold_match_element_1(Match, F, A, I, N, Offset, Prefix, Mid, Data)
+    when I + Offset =:= $* ->
+    case erlang:element(I, Data) of
+        {[], error} ->
+            fold_match_element_1(Match, F, A,
+                I + 1, N, Offset, Prefix, Mid, Data);
+        _ ->
+            erlang:exit(badarg)
+    end;
+            
+fold_match_element_1([$* | T] = Match, F, A, I, N, Offset, Prefix, Mid, Data) ->
+    {Node, Value} = erlang:element(I, Data),
+    case Node of
+        {I0, I1, NextData} ->
+            NewMid = [(Offset + I) | Mid],
+            NewA = if
+                T =:= [], Value =/= error ->
+                    F(lists:reverse(NewMid ++ Prefix), Value, A);
+                true ->
+                    A
+            end,
+            fold_match_element_1(Match, F,
+                fold_match_element_N(Match, F, NewA,
+                    1, I1 - I0 + 2, I0 - 1,
+                    Prefix, NewMid, NextData),
+                I + 1, N, Offset, Prefix, Mid, Data);
+        _ ->
+            NewA = if
+                Value =/= error ->
+                    Suffix = lists:reverse([(Offset + I) | Mid]) ++ Node,
+                    case wildcard_match_lists(Match, Suffix) of
+                        true ->
+                            F(lists:reverse(Prefix) ++ Suffix, Value, A);
+                        false ->
+                            A
+                    end;
+                true ->
+                    A
+            end,
+            fold_match_element_1(Match, F, NewA,
+                I + 1, N, Offset, Prefix, Mid, Data)
+    end.
+
+fold_match_element_N(_, _, A, N, N, _, _, _, _) ->
+    A;
+
+fold_match_element_N(Match, F, A, I, N, Offset, Prefix, Mid, Data)
+    when I + Offset =:= $* ->
+    case erlang:element(I, Data) of
+        {[], error} ->
+            fold_match_element_N(Match, F, A,
+                I + 1, N, Offset, Prefix, Mid, Data);
+        _ ->
+            erlang:exit(badarg)
+    end;
+
+fold_match_element_N([$*] = Match, F, A, I, N, Offset, Prefix, Mid, Data) ->
+    {Node, Value} = erlang:element(I, Data),
+    case Node of
+        {I0, I1, NextData} ->
+            NewMid = [(Offset + I) | Mid],
+            NewA = if
+                Value =/= error ->
+                    F(lists:reverse(NewMid ++ Prefix),
+                      Value, A);
+                true ->
+                    A
+            end,
+            fold_match_element_N(Match, F,
+                fold_match_element_N(Match, F, NewA,
+                    1, I1 - I0 + 2, I0 - 1,
+                    Prefix, NewMid, NextData),
+                I + 1, N, Offset, Prefix, Mid, Data);
+        _ ->
+            NewA = if
+                Value =/= error ->
+                    F(lists:reverse([(Offset + I) | Mid] ++ Prefix) ++ Node,
+                      Value, A);
+                true ->
+                    A
+            end,
+            fold_match_element_N(Match, F, NewA,
+                I + 1, N, Offset, Prefix, Mid, Data)
+    end;
+
+fold_match_element_N([$* | T] = Match, F, A, I, N, Offset, Prefix, Mid, Data) ->
+    {Node, Value} = erlang:element(I, Data),
+    case T of
+        [C | NewMatch] when C =:= Offset + I ->
+            NewPrefix = [(Offset + I) | Mid] ++ Prefix,
+            case NewMatch of
+                [_ | _] when is_tuple(Node) ->
+                    fold_match_node_1(NewMatch, F, A, NewPrefix, Node);
+                [_ | _] ->
+                    if
+                        Value =/= error ->
+                            case wildcard_match_lists(NewMatch, Node) of
+                                true ->
+                                    F(lists:reverse(NewPrefix) ++ Node,
+                                      Value, A);
+                                false ->
+                                    A
+                            end;
+                        true ->
+                            A
+                    end;
+                [] ->
+                    case Node of
+                        [_ | _] ->
+                            A;
+                        _ when Value =/= error ->
+                            F(lists:reverse(NewPrefix),
+                              Value, A);
+                        _ ->
+                            A
+                    end
+            end;
+        _ ->
+            case Node of
+                {I0, I1, NextData} ->
+                    fold_match_element_N(Match, F,
+                        fold_match_element_N(Match, F, A,
+                            1, I1 - I0 + 2, I0 - 1,
+                            Prefix, [(Offset + I) | Mid], NextData),
+                        I + 1, N, Offset, Prefix, Mid, Data);
+                _ ->
+                    NewA = if
+                        Value =/= error ->
+                            Suffix = lists:reverse([(Offset + I) | Mid]) ++
+                                Node,
+                            case wildcard_match_lists(Match, Suffix) of
+                                true ->
+                                    F(lists:reverse(Prefix) ++ Suffix,
+                                      Value, A);
+                                false ->
+                                    A
+                            end;
+                        true ->
+                            A
+                    end,
+                    fold_match_element_N(Match, F, NewA,
+                        I + 1, N, Offset, Prefix, Mid, Data)
+            end
+    end.
+
+%%-------------------------------------------------------------------------
+%% @doc
 %% ===Fold a function over the keys within a trie that share a common prefix.===
 %% Traverses in alphabetical order.
 %% @end
@@ -587,6 +926,13 @@ foldr_element(F, A, I, Offset, Key, Data) ->
 
 fold_similar(Similar, F, A, Node) ->
     foldl_similar(Similar, F, A, Node).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Fold a function over the keys within a trie that share a common prefix.===
+%% Traverses in alphabetical order.
+%% @end
+%%-------------------------------------------------------------------------
 
 -spec foldl_similar(Similar :: string(),
                     F :: fun((string(), any(), any()) -> any()),
@@ -772,7 +1118,11 @@ is_key(_, []) ->
 
 %%-------------------------------------------------------------------------
 %% @doc
-%% ===Determine if a prefix exists in a trie.===
+%% ===Determine if the prefix provided has existed within a trie.===
+%% The function returns true if the string supplied is a prefix
+%% for a key that has previously been stored within the trie.
+%% If no values with the prefix matching key(s) were removed from the trie,
+%% then the prefix currently exists within the trie.
 %% @end
 %%-------------------------------------------------------------------------
 
@@ -784,31 +1134,140 @@ is_prefix([H | _], {I0, I1, _})
 
 is_prefix([H], {I0, _, Data})
     when is_integer(H) ->
-    {Node, Value} = erlang:element(H - I0 + 1, Data),
-    if
-        is_tuple(Node) ->
+    case erlang:element(H - I0 + 1, Data) of
+        {{_, _, _}, _} ->
             true;
-        Node =:= [] ->
+        {[], Value} ->
             (Value =/= error);
-        true ->
-            true
+        _ ->
+            false
     end;
 
 is_prefix([H | T], {I0, _, Data})
     when is_integer(H) ->
-    {Node, Value} = erlang:element(H - I0 + 1, Data),
-    case Node of
-        {_, _, _} ->
+    case erlang:element(H - I0 + 1, Data) of
+        {{_, _, _} = Node, _} ->
             is_prefix(T, Node);
-        [] ->
+        {_, error} ->
+            false;
+        {T, _} ->
             true;
-        T ->
-            (Value =/= error);
-        L ->
+        {L, _} ->
             lists:prefix(T, L)
     end;
 
 is_prefix(_, []) ->
+    false.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Determine if the provided string has a prefix within a trie.===
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec is_prefixed(string(), trie()) -> 'true' | 'false'.
+
+is_prefixed([H | _], {I0, I1, _})
+    when H < I0; H > I1 ->
+    false;
+
+is_prefixed([H], {I0, _, Data})
+    when is_integer(H) ->
+    case erlang:element(H - I0 + 1, Data) of
+        {_, error} ->
+            false;
+        {{_, _, _}, _} ->
+            true;
+        {[], _} ->
+            true;
+        _ ->
+            false
+    end;
+
+is_prefixed([H | T], {I0, _, Data})
+    when is_integer(H) ->
+    case erlang:element(H - I0 + 1, Data) of
+        {{_, _, _} = Node, error} ->
+            is_prefixed(T, Node);
+        {{_, _, _}, _} ->
+            true;
+        {_, error} ->
+            false;
+        {T, _} ->
+            true;
+        _ ->
+            false
+    end;
+
+is_prefixed(_, []) ->
+    false.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Determine if the provided string has an acceptable prefix within a trie.===
+%% The prefix within the trie must match at least 1 character that is not
+%% within the excluded list of characters.
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec is_prefixed(string(), string(), trie()) -> 'true' | 'false'.
+
+is_prefixed(Key, Exclude, Node) ->
+    is_prefixed_match(Key, false, Exclude, Node).
+
+is_prefixed_match([H | _], _, _, {I0, I1, _})
+    when H < I0; H > I1 ->
+    false;
+
+is_prefixed_match([H], Matched, Exclude, {I0, _, Data})
+    when is_integer(H) ->
+    case erlang:element(H - I0 + 1, Data) of
+        {{_, _, _}, error} ->
+            false;
+        {{_, _, _}, _} ->
+            Matched orelse (not lists:member(H, Exclude));
+        {_, error} ->
+            false;
+        {[], _} ->
+            Matched orelse (not lists:member(H, Exclude));
+        _ ->
+            false
+    end;
+
+is_prefixed_match([H | T], Matched, Exclude, {I0, _, Data})
+    when is_integer(H) ->
+    case erlang:element(H - I0 + 1, Data) of
+        {{_, _, _} = Node, error} ->
+            is_prefixed_match(T, Matched orelse (not lists:member(H, Exclude)),
+                              Exclude, Node);
+        {{_, _, _} = Node, _} ->
+            case (Matched orelse (not lists:member(H, Exclude))) of
+                true ->
+                    true;
+                false ->
+                    is_prefixed_match(T, false, Exclude, Node)
+            end;
+        {_, error} ->
+            false;
+        {L, _} ->
+            is_prefixed_match_check(T, L,
+                                    Matched orelse
+                                    (not lists:member(H, Exclude)),
+                                    Exclude)
+    end;
+
+is_prefixed_match(_, _, _, []) ->
+    false.
+
+is_prefixed_match_check([], [], Matched, _) ->
+    Matched;
+
+is_prefixed_match_check([H | T1], [H | T2], Matched, Exclude) ->
+    is_prefixed_match_check(T1, T2,
+                            Matched orelse (not lists:member(H, Exclude)),
+                            Exclude);
+
+is_prefixed_match_check(_, _, _, _) ->
     false.
 
 %%-------------------------------------------------------------------------
@@ -1012,6 +1471,17 @@ merge(F, Node1, Node2) when is_function(F, 3) ->
 new() ->
     [].
 
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Create a new trie instance from a list.===
+%% The list may contain either: strings, 2 element tuples with a string as the
+%% first tuple element, or tuples with more than 2 elements (including records)
+%% with a string as the first element (second element if it is a record).
+%% If a list of records (or tuples larger than 2 elements) is provided,
+%% the whole record/tuple is stored as the value.
+%% @end
+%%-------------------------------------------------------------------------
+
 -spec new(L :: list()) -> trie().
 
 new(L) ->
@@ -1043,7 +1513,55 @@ new_instance_state([H | T], V1, V0)
 
 %%-------------------------------------------------------------------------
 %% @doc
+%% ===Parse a string based on the supplied wildcard pattern.===
+%% "*" is the wildcard character (equivalent to the ".+" regex) and
+%% "**" is forbidden.
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec pattern_parse(Pattern :: string(),
+                    L :: string()) -> list(string()) | 'error'.
+
+pattern_parse(Pattern, L) ->
+    pattern_parse(Pattern, L, []).
+
+pattern_parse_element(_, [], _) ->
+    error;
+
+pattern_parse_element(C, [C | T], Segment) ->
+    {ok, T, lists:reverse(Segment)};
+
+pattern_parse_element(C, [H | T], L) ->
+    pattern_parse_element(C, T, [H | L]).
+
+pattern_parse([], [], Parsed) ->
+    lists:reverse(Parsed);
+
+pattern_parse([], [_ | _], _) ->
+    error;
+
+pattern_parse([$*], [_ | _] = L, Parsed) ->
+    lists:reverse([L | Parsed]);
+
+pattern_parse([$*, C | Pattern], [H | T], Parsed) ->
+    true = C =/= $*,
+    case pattern_parse_element(C, T, [H]) of
+        {ok, NewL, Segment} ->
+            pattern_parse(Pattern, NewL, [Segment | Parsed]);
+        error ->
+            error
+    end;
+
+pattern_parse([C | Pattern], [C | L], Parsed) ->
+    pattern_parse(Pattern, L, Parsed);
+
+pattern_parse(_, _, _) ->
+    error.
+
+%%-------------------------------------------------------------------------
+%% @doc
 %% ===Insert a value as the first list element in a trie instance.===
+%% The reverse of append/3.
 %% @end
 %%-------------------------------------------------------------------------
 
@@ -1067,7 +1585,7 @@ size(Node) ->
 
 %%-------------------------------------------------------------------------
 %% @doc
-%% ===Store a value in a trie instance.===
+%% ===Store only a key in a trie instance.===
 %% @end
 %%-------------------------------------------------------------------------
 
@@ -1076,6 +1594,12 @@ size(Node) ->
 
 store(Key, Node) ->
     store(Key, empty, Node).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Store a key/value pair in a trie instance.===
+%% @end
+%%-------------------------------------------------------------------------
 
 -spec store(Key :: string(),
             NewValue :: any(),
@@ -1300,6 +1824,7 @@ update_counter(Key, Increment, Node) ->
     update(Key, fun(I) -> I + Increment end, Increment, Node).
 
 %%-------------------------------------------------------------------------
+%% @private
 %% @doc
 %% ===Regression test.===
 %% @end
@@ -1474,6 +1999,51 @@ test() ->
     {ok, "aaaaaaaa", 3} = trie:find_similar("aaaa", RootNode4),
     {ok, "ab", 5} = trie:find_similar("abba", RootNode4),
     {ok, "aa", 1} = trie:find_similar("a", RootNode4),
+    true = trie:is_prefixed("abacus", RootNode4),
+    false = trie:is_prefixed("ac", RootNode4),
+    false = trie:is_prefixed("abacus", "ab", RootNode4),
+    true = trie:foldl(fun(K, _, L) -> [K | L] end, [], RootNode4) ==
+           trie:fold_match("*", fun(K, _, L) -> [K | L] end, [], RootNode4),
+    ["aaa"
+     ] = trie:fold_match("*aa", fun(K, _, L) -> [K | L] end, [], RootNode4),
+    ["aaaaaaaaaaa",
+     "aaaaaaaa",
+     "aaa"
+     ] = trie:fold_match("aa*", fun(K, _, L) -> [K | L] end, [], RootNode4),
+    ["aba"
+     ] = trie:fold_match("ab*", fun(K, _, L) -> [K | L] end, [], RootNode4),
+    ["ammmmmmm"
+     ] = trie:fold_match("am*", fun(K, _, L) -> [K | L] end, [], RootNode4),
+    ["aba",
+     "aaa"
+     ] = trie:fold_match("a*a", fun(K, _, L) -> [K | L] end, [], RootNode4),
+    {'EXIT',badarg} = (catch trie:fold_match("a**a", fun(K, _, L) -> [K | L] end, [], RootNode4)),
+    RootNode6 = trie:new([
+        {"*",      1},
+        {"aa*",    2},
+        {"aa*b",   3},
+        {"aa*a*",  4},
+        {"aaaaa",  5}]),
+    {ok,"aa*",2} = trie:find_match("aaaa", RootNode6),
+    {ok,"aaaaa",5} = trie:find_match("aaaaa", RootNode6),
+    {ok,"*",1} = trie:find_match("aa", RootNode6),
+    {ok,"aa*",2} = trie:find_match("aab", RootNode6),
+    {ok,"aa*b",3} = trie:find_match("aabb", RootNode6),
+    {ok,"aa*a*",4} = trie:find_match("aabab", RootNode6),
+    {ok,"aa*a*",4} = trie:find_match("aababb", RootNode6),
+    {ok,"aa*a*",4} = trie:find_match("aabbab", RootNode6),
+    {ok,"aa*a*",4} = trie:find_match("aabbabb", RootNode6),
+    {'EXIT',badarg} = (catch trie:find_match("aa*", RootNode6)),
+    {'EXIT',badarg} = (catch trie:find_match("aaaa*", RootNode6)),
+    {'EXIT',badarg} = (catch trie:find_match("aaaaa*", RootNode6)),
+    ["aa"] = trie:pattern_parse("aa*", "aaaa"),
+    ["b"] = trie:pattern_parse("aa*", "aab"),
+    ["b"] = trie:pattern_parse("aa*b", "aabb"),
+    ["b", "b"] = trie:pattern_parse("aa*a*", "aabab"),
+    ["b", "bb"] = trie:pattern_parse("aa*a*", "aababb"),
+    ["bb", "b"] = trie:pattern_parse("aa*a*", "aabbab"),
+    ["bb", "bb"] = trie:pattern_parse("aa*a*", "aabbabb"),
+    error = trie:pattern_parse("aa*a*", "aaabb"),
     ok.
 
 %%%------------------------------------------------------------------------
@@ -1493,4 +2063,68 @@ tuple_move_i(N1, _, N1, T1, _) ->
 tuple_move_i(I1, I0, N1, T1, T0) ->
     tuple_move_i(I1 + 1, I0 + 1, N1,
         erlang:setelement(I1, T1, erlang:element(I0, T0)), T0).
+
+wildcard_match_lists_element(_, []) ->
+    error;
+
+wildcard_match_lists_element(_, [$* | _]) ->
+    erlang:exit(badarg);
+
+wildcard_match_lists_element(C, [C | L]) ->
+    {ok, L};
+
+wildcard_match_lists_element(C, [_ | L]) ->
+    wildcard_match_lists_element(C, L).
+
+wildcard_match_lists_valid([], Result) ->
+    Result;
+
+wildcard_match_lists_valid([$* | _], _) ->
+    erlang:exit(badarg);
+
+wildcard_match_lists_valid([_ | L], Result) ->
+    wildcard_match_lists_valid(L, Result).
+
+wildcard_match_lists([], []) ->
+    true;
+
+wildcard_match_lists([], [_ | _] = L) ->
+    wildcard_match_lists_valid(L, false);
+
+wildcard_match_lists([_ | _], [$* | _]) ->
+    erlang:exit(badarg);
+
+wildcard_match_lists([$*], [_ | L]) ->
+    wildcard_match_lists_valid(L, true);
+
+wildcard_match_lists([$*, C | Match], [_ | L]) ->
+    true = C =/= $*,
+    case wildcard_match_lists_element(C, L) of
+        {ok, NewL} ->
+            wildcard_match_lists(Match, NewL);
+        error ->
+            wildcard_match_lists_valid(L, false)
+    end;
+
+wildcard_match_lists([C | Match], [C | L]) ->
+    wildcard_match_lists(Match, L);
+
+wildcard_match_lists(_, L) ->
+    wildcard_match_lists_valid(L, false).
+
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+internal_test_() ->
+    [
+        {"internal tests", ?_assertEqual(ok, test())}
+    ].
+
+proper_test_() ->
+    {timeout, 600, [
+        {"proper tests", ?_assert(trie_proper:qc_run())}
+    ]}.
+
+-endif.
 

@@ -185,7 +185,13 @@ test() ->
     test(10000).
 
 test(N) ->
-    Words = array:to_list(array:resize(N, read_wordlist())),
+    WordListLines = erlang:min(50000, N),
+    Nfinal = N - N rem WordListLines,
+    true = N == Nfinal,
+    Words = lists:foldl(fun (_, L) ->
+        array:to_list(array:resize(WordListLines, read_wordlist())) ++ L
+    end, [], lists:seq(WordListLines, Nfinal, WordListLines)),
+    true = erlang:length(Words) == Nfinal,
 
     %% gb_trees
     {S1, D1} = timer:tc(?MODULE, set, [fun gb_trees_set/3, data1(N), Words]),
@@ -268,7 +274,12 @@ read_wordlist(I, F, Array) ->
     case file:read_line(F) of
         {ok, Line} ->
             Word = lists:sublist(Line, erlang:length(Line) - 1),
-            read_wordlist(I + 1, F, array:set(I, Word, Array));
+            if
+                Word == "" ->
+                    read_wordlist(I, F, Array);
+                true ->
+                    read_wordlist(I + 1, F, array:set(I, Word, Array))
+            end;
         eof ->
             array:fix(array:resize(I, Array))
     end.
