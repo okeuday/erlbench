@@ -16,7 +16,7 @@
 % erlc string_key.erl
 % erl -noshell -s string_key test -s init stop
 
--module(string_key).
+-module(binary_key).
 
 -export([test/0, test/1, get/3, get_concurrent/2, set/3]).
 
@@ -38,9 +38,6 @@ data3(_) ->
 
 data5(_) ->
     dict:new().
-
-data6(_) ->
-    trie:new().
 
 data7(_) ->
     ets:new(ets_test_1, [set]).
@@ -75,12 +72,6 @@ data16(_) ->
 data17(_) ->
     btrie:new().
 
-data18(_) ->
-    htrie:new().
-
-data19(_) ->
-    hamt:new().
-
 gb_trees_set(Tree, String, Value) ->
     gb_trees:enter(String, Value, Tree).
 
@@ -95,9 +86,6 @@ aadict_set(Dict, String, Value) ->
 
 dict_set(Dict, String, Value) ->
     dict:store(String, Value, Dict).
-
-trie_set(Trie, String, Value) ->
-    trie:store(String, Value, Trie).
 
 ets_set(Tid, String, Value) ->
     true = ets:insert(Tid, {String, Value}),
@@ -124,12 +112,6 @@ hashtl_set(HashT, String, Value) ->
 btrie_set(Trie, String, Value) ->
     btrie:store(String, Value, Trie).
 
-%htrie_set(Trie, String, Value) ->
-%    htrie:put(String, Value, Trie).
-
-%hamt_set(Trie, String, Value) ->
-%    hamt:put(String, Value, Trie).
-
 gb_trees_get(Tree, String) ->
     gb_trees:get(String, Tree).
 
@@ -144,9 +126,6 @@ aadict_get(Dict, String) ->
 
 dict_get(Dict, String) ->
     dict:fetch(String, Dict).
-
-trie_get(Trie, String) ->
-    trie:fetch(String, Trie).
 
 ets_get(Tid, String) ->
     ets:lookup_element(Tid, String, 2).
@@ -171,12 +150,6 @@ hashtl_get(HashT, String) ->
 
 btrie_get(Trie, String) ->
     btrie:fetch(String, Trie).
-
-%htrie_get(Trie, String) ->
-%    htrie:get(String, Trie).
-
-%hamt_get(Trie, String) ->
-%    hamt:get(String, Trie).
 
 get(_, _, []) ->
     ok;
@@ -219,7 +192,6 @@ test(N) ->
         array:to_list(array:resize(WordListLines, read_wordlist())) ++ L
     end, [], lists:seq(WordListLines, Nfinal, WordListLines)),
     true = erlang:length(Words) == Nfinal,
-    BWords = [erlang:list_to_binary(Word) || Word <- Words],
 
     %% gb_trees
     {S1, D1} = timer:tc(?MODULE, set, [fun gb_trees_set/3, data1(N), Words]),
@@ -236,9 +208,6 @@ test(N) ->
     %% dict
     {S5, D5} = timer:tc(?MODULE, set, [fun dict_set/3, data5(N), Words]),
     {G5, _} = timer:tc(?MODULE, get, [fun dict_get/2, D5, Words]),
-    %% trie
-    {S6, D6} = timer:tc(?MODULE, set, [fun trie_set/3, data6(N), Words]),
-    {G6, _} = timer:tc(?MODULE, get, [fun trie_get/2, D6, Words]),
     %% ets
     {S7, D7} = timer:tc(?MODULE, set, [fun ets_set/3, data7(N), Words]),
     {G7, _} = timer:tc(?MODULE, get, [fun ets_get/2, D7, Words]),
@@ -274,14 +243,8 @@ test(N) ->
     {G16, _} = timer:tc(?MODULE, get_concurrent, [10, [fun ets_get/2, D16, Words]]),
     ets:delete(D16),
     % btrie
-    {S17, D17} = timer:tc(?MODULE, set, [fun btrie_set/3, data17(N), BWords]),
-    {G17, _} = timer:tc(?MODULE, get, [fun btrie_get/2, D17, BWords]),
-    % htrie
-    %{S18, D18} = timer:tc(?MODULE, set, [fun htrie_set/3, data18(N), Words]),
-    %{G18, _} = timer:tc(?MODULE, get, [fun htrie_get/2, D18, Words]),
-    % hamt
-    %{S19, D19} = timer:tc(?MODULE, set, [fun hamt_set/3, data19(N), Words]),
-    %{G19, _} = timer:tc(?MODULE, get, [fun hamt_get/2, D19, Words]),
+    {S17, D17} = timer:tc(?MODULE, set, [fun btrie_set/3, data17(N), Words]),
+    {G17, _} = timer:tc(?MODULE, get, [fun btrie_get/2, D17, Words]),
     %% results
     [
         #result{name = "gb_trees",            get =  G1, set =  S1},
@@ -289,7 +252,6 @@ test(N) ->
         #result{name = "aadict",              get =  G3, set =  S3},
         %#result{name = "orddict",             get =  G4, set =  S4},
         #result{name = "dict",                get =  G5, set =  S5},
-        #result{name = "trie",                get =  G6, set =  S6},
         #result{name = "ets (set)",           get =  G7, set =  S7},
         #result{name = "process dictionary",  get =  G8, set =  S8},
         #result{name = "ets x10 read (set)",  get = erlang:round(G9 / 10.0)},
@@ -301,9 +263,7 @@ test(N) ->
         #result{name = "ets (ordered_set)",   get = G15, set = S15},
         #result{name = "ets x10 read (ordered_set)",
                 get = erlang:round(G16 / 10.0)},
-        #result{name = "btrie (binaries)",    get = G17, set = S17}%,
-        %#result{name = "htrie",               get = G18, set = S18},
-        %#result{name = "hamt",                get = G19, set = S19}
+        #result{name = "btrie",               get = G17, set = S17}
     ].
 
 read_wordlist() ->
@@ -319,7 +279,8 @@ read_wordlist(I, F, Array) ->
                 Word == "" ->
                     read_wordlist(I, F, Array);
                 true ->
-                    read_wordlist(I + 1, F, array:set(I, Word, Array))
+                    read_wordlist(I + 1, F,
+                        array:set(I, erlang:list_to_binary(Word), Array))
             end;
         eof ->
             array:fix(array:resize(I, Array))

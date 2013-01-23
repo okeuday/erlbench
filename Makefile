@@ -69,15 +69,19 @@ clean:
 
 BUILT=\
     ebin/aadict.beam \
+    ebin/binary_key.beam \
     ebin/btree7.beam \
+    ebin/btrie.beam \
     ebin/ejson_decode.beam \
     ebin/ejson_encode.beam \
     ebin/ejson.beam \
+    ebin/hamt.beam \
     ebin/hasht.beam \
     ebin/hashtl2.beam \
     ebin/hashtl3.beam \
     ebin/hashtl4.beam \
     ebin/hashtl.beam \
+    ebin/htrie.beam \
     ebin/integer_key.beam \
     ebin/json_decode.beam \
     ebin/json_encode.beam \
