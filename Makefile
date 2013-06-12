@@ -76,6 +76,7 @@ BUILT=\
     ebin/ejson_encode.beam \
     ebin/ejson.beam \
     ebin/hamt.beam \
+    ebin/hashdict.beam \
     ebin/hasht.beam \
     ebin/hashtl2.beam \
     ebin/hashtl3.beam \
