@@ -81,6 +81,9 @@ data18(_) ->
 data19(_) ->
     hamt:new().
 
+data20(_) ->
+    hashdict:new().
+
 gb_trees_set(Tree, String, Value) ->
     gb_trees:enter(String, Value, Tree).
 
@@ -130,6 +133,9 @@ btrie_set(Trie, String, Value) ->
 %hamt_set(Trie, String, Value) ->
 %    hamt:put(String, Value, Trie).
 
+hashdict_set(Dict, String, Value) ->
+    hashdict:store(String, Value, Dict).
+
 gb_trees_get(Tree, String) ->
     gb_trees:get(String, Tree).
 
@@ -177,6 +183,9 @@ btrie_get(Trie, String) ->
 
 %hamt_get(Trie, String) ->
 %    hamt:get(String, Trie).
+
+hashdict_get(Dict, String) ->
+    hashdict:fetch(String, Dict).
 
 get(_, _, []) ->
     ok;
@@ -282,6 +291,8 @@ test(N) ->
     % hamt
     %{S19, D19} = timer:tc(?MODULE, set, [fun hamt_set/3, data19(N), Words]),
     %{G19, _} = timer:tc(?MODULE, get, [fun hamt_get/2, D19, Words]),
+    {S20, D20} = timer:tc(?MODULE, set, [fun hashdict_set/3, data20(N), Words]),
+    {G20, _} = timer:tc(?MODULE, get, [fun hashdict_get/2, D20, Words]),
     %% results
     [
         #result{name = "gb_trees",            get =  G1, set =  S1},
@@ -301,9 +312,10 @@ test(N) ->
         #result{name = "ets (ordered_set)",   get = G15, set = S15},
         #result{name = "ets x10 read (ordered_set)",
                 get = erlang:round(G16 / 10.0)},
-        #result{name = "btrie (binaries)",    get = G17, set = S17}%,
+        #result{name = "btrie (binaries)",    get = G17, set = S17},
         %#result{name = "htrie",               get = G18, set = S18},
         %#result{name = "hamt",                get = G19, set = S19}
+        #result{name = "hashdict",            get = G20, set = S20}
     ].
 
 read_wordlist() ->

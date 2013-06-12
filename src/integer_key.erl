@@ -85,6 +85,9 @@ data17(_) ->
 data20(_) ->
     btree7:new().
 
+data21(_) ->
+    hashdict:new().
+
 array_set(Array, I, Value) ->
     %% array indexing starts at 0
     array:set(I - 1, Value, Array).
@@ -136,6 +139,9 @@ hashtl_set(HashT, I, Value) ->
 btree7_set(Tree, I, Value) ->
     btree7:store(I, Value, Tree).
 
+hashdict_set(Dict, I, Value) ->
+    hashdict:store(I, Value, Dict).
+
 array_get(Array, I) ->
     array:get(I - 1, Array).
 
@@ -185,6 +191,9 @@ hashtl_get(HashT, I) ->
 btree7_get(Tree, I) ->
     {ok, V} = btree7:find(I, Tree),
     V.
+
+hashdict_get(Dict, I) ->
+    hashdict:fetch(I, Dict).
 
 get(_, _, []) ->
     ok;
@@ -323,6 +332,10 @@ test(N) ->
                           [fun btree7_set/3, data20(N), Integers]),
     {G20, _} = timer:tc(?MODULE, get,
                         [fun btree7_get/2, D20, Integers]),
+    {S21, D21} = timer:tc(?MODULE, set,
+                          [fun hashdict_set/3, data21(N), Integers]),
+    {G21, _} = timer:tc(?MODULE, get,
+                        [fun hashdict_get/2, D21, Integers]),
     %% results
     [
         #result{name = "array (fixed)",       get =  G1, set =  S1},
@@ -344,6 +357,7 @@ test(N) ->
         #result{name = "ets (ordered_set)",   get = G17, set = S17},
         %#result{name = "ets x10 read (ordered_set)", get = erlang:round(G18 / 10.0)},
         %#result{name = "ntree",               get = G19, set = S19},
-        #result{name = "btree7",              get = G20, set = S20}
+        #result{name = "btree7",              get = G20, set = S20},
+        #result{name = "hashdict",            get = G21, set = S21}
     ].
 
