@@ -119,6 +119,7 @@ BUILT=\
     ebin/shuffle.beam \
     ebin/string_key.beam \
     ebin/trie.beam \
+    ebin/trie_prefix.beam \
     ebin/uuid_creation.beam \
     ebin/uuid.beam
 

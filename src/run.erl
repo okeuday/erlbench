@@ -1,5 +1,5 @@
-%%% -*- coding: utf-8; Mode: erlang; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*-
-%%% ex: set softtabstop=4 tabstop=4 shiftwidth=4 expandtab fileencoding=utf-8:
+%-*-Mode:erlang;coding:utf-8;tab-width:4;c-basic-offset:4;indent-tabs-mode:()-*-
+% ex: set ft=erlang fenc=utf-8 sts=4 ts=4 sw=4 et:
 
 -module(run).
 
@@ -28,9 +28,10 @@
 %-define(TESTS, [string_key, integer_key, list_traversal]).
 %-define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,
 %                 8000, 16000, 32000, 64000]).
-%-define(TESTS, [string_key]).
--define(TESTS, [binary_key, string_key]).
+%-define(TESTS, [binary_key]).
+%-define(TESTS, [binary_key, string_key]).
 %-define(TESTS, [string_key, integer_key]).
+-define(TESTS, [trie_prefix]).
 
 test() ->
     <<Random1:16/unsigned-integer,
