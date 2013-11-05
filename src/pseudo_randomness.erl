@@ -7,7 +7,7 @@
 
 -include("erlbench.hrl").
 
--define(PRINT_DISTRIBUTION, true).
+%-define(PRINT_DISTRIBUTION, true).
 
 test_now() ->
     % most uniform solution

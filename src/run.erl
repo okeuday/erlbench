@@ -17,12 +17,15 @@
 %-define(COUNTS, [100]).
 %-define(TESTS, [json_encode, json_decode]).
 
--define(COUNTS, [10000]).
--define(TESTS, [pseudo_randomness]).
+%-define(COUNTS, [10000]).
+%-define(TESTS, [pseudo_randomness]).
 
 %-define(COUNTS, [1000000]).
 %-define(TESTS, [pqueue_priority0, pqueue_priorities2, pqueue_priorities41,
 %                pqueue_priorities64]).
+
+-define(COUNTS, [10, 100, 1000, 10000, 100000]).
+-define(TESTS, [list_match]).
 
 %-define(COUNTS, [1000, 10000, 100000]).
 %-define(TESTS, [string_key, integer_key, list_traversal]).
@@ -67,7 +70,12 @@ test() ->
                     set = minimum(Value#result.set, M#result.set),
                     update = minimum(Value#result.update, M#result.update)
                 }
-            end, #result{}, FinalResults),
+            end,
+            #result{
+                get = 1.0e9,
+                set = 1.0e9,
+                update = 1.0e9},
+            FinalResults),
 
             Header = io_lib:format("N == ~w (~w runs)~n", [Count, ?RUNS]),
             Output = trie:foldl(fun(_, Value, L) ->

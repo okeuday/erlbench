@@ -95,6 +95,7 @@ BUILT=\
     ebin/jsx_utf32le.beam \
     ebin/jsx_utf8.beam \
     ebin/jsx_verify.beam \
+    ebin/list_match.beam \
     ebin/list_traversal.beam \
     ebin/lqueue.beam \
     ebin/mochijson2.beam \
