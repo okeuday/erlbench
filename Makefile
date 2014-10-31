@@ -86,14 +86,13 @@ BUILT=\
     ebin/integer_key.beam \
     ebin/json_decode.beam \
     ebin/json_encode.beam \
-    ebin/jsx_eep0018.beam \
+    ebin/jsx_config.beam \
+    ebin/jsx_decoder.beam \
+    ebin/jsx_encoder.beam \
     ebin/jsx.beam \
-    ebin/jsx_format.beam \
-    ebin/jsx_utf16.beam \
-    ebin/jsx_utf16le.beam \
-    ebin/jsx_utf32.beam \
-    ebin/jsx_utf32le.beam \
-    ebin/jsx_utf8.beam \
+    ebin/jsx_parser.beam \
+    ebin/jsx_to_json.beam \
+    ebin/jsx_to_term.beam \
     ebin/jsx_verify.beam \
     ebin/list_match.beam \
     ebin/list_traversal.beam \

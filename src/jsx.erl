@@ -1,6 +1,6 @@
 %% The MIT License
 
-%% Copyright (c) 2010 Alisdair Sullivan <alisdairsullivan@yahoo.ca>
+%% Copyright (c) 2010-2013 alisdair sullivan <alisdairsullivan@yahoo.ca>
 
 %% Permission is hereby granted, free of charge, to any person obtaining a copy
 %% of this software and associated documentation files (the "Software"), to deal
@@ -21,672 +21,477 @@
 %% THE SOFTWARE.
 
 
-%% @author Alisdair Sullivan <alisdairsullivan@yahoo.ca>
-%% @copyright 2010 Alisdair Sullivan
-%% @version 0.9.0
-%% @doc this module defines the interface to the jsx json parsing library
-
 -module(jsx).
 
+-export([encode/1, encode/2, decode/1, decode/2]).
+-export([is_json/1, is_json/2, is_term/1, is_term/2]).
+-export([format/1, format/2, minify/1, prettify/1]).
+-export([encoder/3, decoder/3, parser/3]).
+-export([resume/3]).
 
-%% the core parser api
--export([parser/0, parser/1]).
--export([term_to_json/1, term_to_json/2]).
--export([json_to_term/1, json_to_term/2]).
--export([is_json/1, is_json/2]).
--export([format/1, format/2]).
--export([eventify/1]).
-
-
--include("./include/jsx_common.hrl").
+-export_type([json_term/0, json_text/0, token/0]).
+-export_type([encoder/0, decoder/0, parser/0, internal_state/0]).
+-export_type([config/0]).
 
 
 -ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
+%% data and helper functions for tests
+-export([test_cases/0, special_test_cases/0]).
+-export([init/1, handle_event/2]).
 -endif.
 
 
-%% @type jsx_parser() = (binary()) -> jsx_parser_result().
+-ifndef(maps_support).
+-type json_term() :: [{binary() | atom(), json_term()}] | [{}]
+    | [json_term()] | []
+    | true | false | null
+    | integer() | float()
+    | binary() | atom()
+    | calendar:datetime().
+-endif.
 
-%% @type jsx_parser_result() = {event, jsx_event(), (() -> jsx_parser_result())}
-%%    | {incomplete, jsx_parser()}
-%%    | {error, {badjson, binary()}}
-%%    | {error, badarg}.
+-ifdef(maps_support).
+-type json_term() :: [{binary() | atom(), json_term()}] | [{}]
+    | [json_term()] | []
+    | map()
+    | true | false | null
+    | integer() | float()
+    | binary() | atom()
+    | calendar:datetime().
+-endif.
 
-%% @type jsx_event() = start_object
-%%    | end_object
-%%    | start_array
-%%    | end_array
-%%    | end_json
-%%    | {key, unicode_string()}
-%%    | {string, unicode_string()}
-%%    | {integer, unicode_string()}
-%%    | {float, unicode_string()}
-%%    | {literal, true}
-%%    | {literal, false}
-%%    | {literal, null}.
+-type json_text() :: binary().
 
-%% @type unicode_string() = [integer()].
+-type config() :: jsx_config:config().
 
-%% @type jsx_opts() = [jsx_opt()].
-%% @type jsx_opt() = {comments, true | false}
-%%    | {escaped_unicode, ascii | codepoint | none}
-%%    | {multi_term, true | false}
-%%    | {unquoted_keys, true | false}
-%%    | {encoding, auto | supported_utf()}.
+-spec encode(Source::json_term()) -> json_text().
+-spec encode(Source::json_term(), Config::jsx_to_json:config()) -> json_text() | {incomplete, encoder()}.
 
-%% @type supported_utf() = utf8 
-%%    | utf16 
-%%    | {utf16, little} 
-%%    | utf32 
-%%    | {utf32, little}.
-
-%% @type eep0018() = eep0018_object() | eep0018_array().
-
-%% @type eep0018_array() = [eep0018_term()].
-%% @type eep0018_object() = [{eep0018_key(), eep0018_term()}].
-
-%% @type eep0018_key() = binary() | atom().
-
-%% @type eep0018_term() = eep0018_array() 
-%%    | eep0018_object() 
-%%    | eep0018_string() 
-%%    | eep0018_number() 
-%%    | true 
-%%    | false 
-%%    | null.
-
-%% @type eep0018_string() = binary().
-
-%% @type eep0018_number() = float() | integer().
-
-%% @type encoder_opts() = [encoder_opt()].
-%% @type encoder_opt() = {strict, true | false}
-%%    | {encoding, supported_utf()}
-%%    | {space, integer()}
-%%    | space
-%%    | {indent, integer()}
-%%    | indent.
+encode(Source) -> encode(Source, []).
+encode(Source, Config) -> jsx_to_json:to_json(Source, Config).
 
 
-%% @type decoder_opts() = [decoder_opt()].
-%% @type decoder_opt() = {strict, true | false}
-%%    | {comments, true | false}
-%%    | {encoding, supported_utf()}
-%%    | {label, atom | binary | existing_atom}
-%%    | {float, true | false}.
+-spec decode(Source::json_text()) -> json_term().
+-spec decode(Source::json_text(), Config::jsx_to_term:config()) -> json_term()  | {incomplete, decoder()}.
+
+decode(Source) -> decode(Source, []).
+decode(Source, Config) -> jsx_to_term:to_term(Source, Config).
 
 
-%% @type verify_opts() = [verify_opt()].
-%% @type verify_opt() = {strict, true | false}
-%%    | {encoding, auto | supported_utf()}
-%%    | {comments, true | false}.
+-spec format(Source::json_text()) -> json_text().
+-spec format(Source::json_text(), Config::jsx_to_json:config()) -> json_text() | {incomplete, decoder()}.
+
+format(Source) -> format(Source, []).
+format(Source, Config) -> jsx_to_json:format(Source, Config).
 
 
-%% @type format_opts() = [format_opt()].
-%% @type format_opt() = {strict, true | false}
-%%    | {encoding, auto | supported_utf()}
-%%    | {comments, true | false}
-%%    | {space, integer()}
-%%    | space
-%%    | {indent, integer()}
-%%    | indent
-%%    | {output_encoding, supported_utf()}.
+-spec minify(Source::json_text()) -> json_text().
+
+minify(Source) -> format(Source, []).
 
 
-%% @spec parser() -> jsx_parser()
-%% @equiv parser([])
+-spec prettify(Source::json_text()) -> json_text().
 
--spec parser() -> jsx_parser().
-
-parser() ->
-    parser([]).
-    
-%% @spec parser(Opts::jsx_opts()) -> jsx_parser()    
-%% @doc
-%% produces a function which takes a binary which may or may not represent an 
-%% encoded json document and returns a generator
-%%
-%%      options:
-%%      <ul>
-%%        <li>{comments, true | false}
-%%          <p>if true, json documents that contain c style (/* ... */) comments
-%%          will be parsed as if they did not contain any comments. default is
-%%          false</p></li>
-%%    
-%%        <li>{encoded_unicode, ascii | codepoint | none}
-%%          <p>if a \uXXXX escape sequence is encountered within a key or 
-%%          string, this option controls how it is interpreted. none makes no 
-%%          attempt to interpret the value, leaving it unconverted. ascii will 
-%%          convert any value that falls within the ascii range. codepoint will 
-%%          convert any value that is a valid unicode codepoint. note that 
-%%          unicode non-characters (including badly formed surrogates) will 
-%%          never be converted. codepoint is the default</p></li>
-%%
-%%        <li>{encoding, auto 
-%%              | utf8 
-%%              | utf16 
-%%              | {utf16, little} 
-%%              | utf32 
-%%              | {utf32, little} 
-%%          }
-%%          <p>attempt to parse the binary using the specified encoding. auto 
-%%          will auto detect any supported encoding and is the default</p></li>
-%%
-%%        <li>{multi_term, true | false}
-%%          <p>usually, documents will be parsed in full before the end_json
-%%          event is emitted. setting this option to true will instead emit
-%%          the end_json event as soon as a valid document is parsed and then
-%%          reset the parser to it's initial state and attempt to parse the
-%%          remainder as a new json document. this allows streams containing
-%%          multiple documents to be parsed correctly</p></li>
-%%      </ul>
-%% @end
-
--spec parser(OptsList::jsx_opts()) -> jsx_parser().
-
-parser(OptsList) ->
-    case proplists:get_value(encoding, OptsList, auto) of
-        utf8 -> jsx_utf8:parser(OptsList)
-        ; utf16 -> jsx_utf16:parser(OptsList)
-        ; utf32 -> jsx_utf32:parser(OptsList)
-        ; {utf16, little} -> jsx_utf16le:parser(OptsList)
-        ; {utf32, little} -> jsx_utf32le:parser(OptsList)
-        ; auto -> detect_encoding(OptsList)
-    end.
-    
-
-%% @spec json_to_term(JSON::binary()) -> eep0018()
-%% @equiv json_to_term(JSON, [])
-
--spec json_to_term(JSON::binary()) -> eep0018().
-
-json_to_term(JSON) ->
-    try json_to_term(JSON, [])
-    %% rethrow exception so internals aren't confusingly exposed to users
-    catch error:badarg -> erlang:error(badarg)
-    end.
-    
-%% @spec json_to_term(JSON::binary(), Opts::decoder_opts()) -> eep0018()
-%% @doc
-%% produces an eep0018 representation of a binary encoded json document
-%%
-%%      options:
-%%      <ul>
-%%        <li>{strict, true | false}
-%%          <p>by default, attempting to convert unwrapped json values (numbers, 
-%%          strings and the atoms true, false and null) result in a badarg 
-%%          exception. if strict equals false, these are instead decoded to 
-%%          their equivalent eep0018 value. default is false</p>
-%%        
-%%          <p>note that there is a problem of ambiguity when parsing unwrapped 
-%%          json numbers that requires special handling</p>
-%%
-%%          <p>an unwrapped json number has no unambiguous end marker like a 
-%%          json object, array or string. `1', `12' and `123' may all represent 
-%%          either a complete json number or just the beginning of one. in this 
-%%          case, the parser will always return `{incomplete, More}' rather than 
-%%          potentially terminate before input is exhausted. to force 
-%%          termination, `More/1' may be called with the atom `end_stream' as 
-%%          it's argument. note also that numbers followed by whitespace will be 
-%%          parsed correctly</p></li>
-%%     
-%%        <li>{encoding, auto 
-%%              | utf8 
-%%              | utf16 
-%%              | {utf16, little} 
-%%              | utf32 
-%%              | {utf32, little} 
-%%          }
-%%          <p>assume the binary is encoded using the specified binary. default 
-%%          is auto, which attempts to autodetect the encoding</p></li>
-%% 
-%%        <li>{comments, true | false}
-%%          <p>if true, json documents that contain c style (/* ... */) comments
-%%          will be parsed as if they did not contain any comments. default is
-%%          false</p></li>
-%%     
-%%        <li>{label, atom | existing_atom | binary}
-%%          <p>json keys (labels) are decoded to utf8 encoded binaries, atoms or 
-%%          existing_atoms (atom if it exists, binary otherwise) as specified by 
-%%          this option. default is binary</p></li>
-%%         
-%%        <li>{float, true | false}
-%%          <p>return all numbers as floats. default is false</p></li>
-%%      </ul>
-%% @end
-
--spec json_to_term(JSON::binary(), Opts::decoder_opts()) -> eep0018(). 
-
-%json_to_term(JSON, Opts) ->
-%    try jsx_eep0018:json_to_term(JSON, Opts)
-%    %% rethrow exception so internals aren't confusingly exposed to users
-%    catch error:badarg -> erlang:error(badarg)
-%    end.
-    
-json_to_term(JSON, Opts) ->
-    jsx_eep0018:json_to_term(JSON, Opts).
+prettify(Source) -> format(Source, [space, {indent, 2}]).
 
 
-%% @spec term_to_json(JSON::eep0018()) -> binary()
-%% @equiv term_to_json(JSON, [])
+-spec is_json(Source::any()) -> true | false.
+-spec is_json(Source::any(), Config::jsx_verify:config()) -> true | false | {incomplete, decoder()}.
 
--spec term_to_json(JSON::eep0018()) -> binary().
-
-term_to_json(JSON) ->
-    try term_to_json(JSON, [])
-    %% rethrow exception so internals aren't confusingly exposed to users
-    catch error:badarg -> erlang:error(badarg)
-    end.
-    
-%% @spec term_to_json(JSON::eep0018(), Opts::encoder_opts()) -> binary()
-%% @doc
-%% takes the erlang representation of a json object (as defined in eep0018) and 
-%% returns a (binary encoded) json string
-%%   
-%%      options:
-%%      <ul>
-%%        <li>{strict, true | false}
-%%          <p>by default, attempting to convert unwrapped json values (numbers, 
-%%          strings and the atoms true, false and null) result in a badarg 
-%%          exception. if strict equals false, these are instead json encoded. 
-%%          default is false</p></li>
-%%        
-%%        <li>{encoding, utf8 
-%%              | utf16 
-%%              | {utf16, little} 
-%%              | utf32 
-%%              | {utf32, little} 
-%%          }
-%%          <p>the encoding of the resulting binary. default is utf8</p></li>
-%%        
-%%        <li>space
-%%          <p>space is equivalent to {space, 1}</p></li>
-%%
-%%        <li>{space, N}
-%%          <p>place N spaces after each colon and comma in the resulting 
-%%          binary. default is zero</p></li>
-%%          
-%%        <li>indent
-%%          <p>indent is equivalent to {indent, 1}</p></li>
-%%
-%%        <li>{indent, N}
-%%          <p>indent each 'level' of the json structure by N spaces. default is 
-%%          zero</p></li>
-%%      </ul>
-%% @end
-
--spec term_to_json(JSON::eep0018(), Opts::encoder_opts()) -> binary().        
-
-term_to_json(JSON, Opts) ->
-    try jsx_eep0018:term_to_json(JSON, Opts)
-    %% rethrow exception so internals aren't confusingly exposed to users
-    catch error:badarg -> erlang:error(badarg)
-    end.
+is_json(Source) -> is_json(Source, []).
+is_json(Source, Config) -> jsx_verify:is_json(Source, Config).
 
 
-%% @spec is_json(JSON::binary()) -> true | false
-%% @equiv is_json(JSON, [])
+-spec is_term(Source::any()) -> true | false.
+-spec is_term(Source::any(), Config::jsx_verify:config()) -> true | false | {incomplete, encoder()}.
 
--spec is_json(JSON::binary()) -> true | false.
-
-is_json(JSON) ->
-    is_json(JSON, []).
-    
-%% @spec is_json(JSON::binary(), verify_opts()) -> true | false
-%% @doc
-%% returns true if the binary is an encoded json document, false otherwise
-%%
-%%      options:
-%%      <ul>
-%%        <li>{strict, true | false}
-%%          <p>by default,  unwrapped json values (numbers, strings and the 
-%%          atoms true, false and null) return false. if strict equals true, 
-%%          is_json returns true. default is false</p></li>
-%%  
-%%        <li>{encoding, auto 
-%%              | utf8 
-%%              | utf16 
-%%              | {utf16, little} 
-%%              | utf32 
-%%              | {utf32, little} 
-%%          }
-%%          <p>assume the binary is encoded using the specified binary. default 
-%%          is auto, which attempts to autodetect the encoding</p></li>
-%%
-%%        <li>{comments, true | false}
-%%          <p>if true, json documents that contain c style (/* ... */) comments
-%%          will be parsed as if they did not contain any comments. default is
-%%          false</p></li>
-%%      </ul>
-%% @end
-
--spec is_json(JSON::binary(), Opts::verify_opts()) -> true | false.
-
-is_json(JSON, Opts) ->
-    jsx_verify:is_json(JSON, Opts).
+is_term(Source) -> is_term(Source, []).
+is_term(Source, Config) -> jsx_verify:is_term(Source, Config).
 
 
-%% @spec format(JSON::binary()) -> binary()
-%% @equiv format(JSON, [])
+-type decoder() :: fun((json_text() | end_stream | end_json) -> any()).
 
--spec format(JSON::binary()) -> binary() | iolist().
+-spec decoder(Handler::module(), State::any(), Config::list()) -> decoder().
 
-format(JSON) ->
-    format(JSON, []).
-    
-%% @spec format(JSON::binary(), Opts::format_opts()) -> binary()
-%% @doc
-%% formats a binary encoded json string according to the options chose. the 
-%% defaults will produced a string stripped of all whitespace
-%%
-%%      options:
-%%      <ul>
-%%        <li>{strict, true | false}
-%%          <p>by default,  unwrapped json values (numbers, strings and the 
-%%          atoms true, false and null) result in an error. if strict equals 
-%%          true, they are treated as valid json. default is false</p></li>
-%%  
-%%        <li>{encoding, auto 
-%%              | utf8 
-%%              | utf16 
-%%              | {utf16, little} 
-%%              | utf32 
-%%              | {utf32, little} 
-%%          }
-%%          <p>assume the binary is encoded using the specified binary. default 
-%%          is auto, which attempts to autodetect the encoding</p></li>
-%%    
-%%        <li>{output_encoding, utf8 
-%%              | utf16 
-%%              | {utf16, little} 
-%%              | utf32 
-%%              | {utf32, little} 
-%%          }
-%%          <p>the encoding of the resulting binary. default is utf8</p></li>
-%%
-%%        <li>{comments, true | false}
-%%          <p>if true, json documents that contain c style (/* ... */) comments
-%%          will be parsed as if they did not contain any comments. default is
-%%          false</p></li>
-%%
-%%        <li>space
-%%          <p>space is equivalent to {space, 1}</p></li>
-%%
-%%        <li>{space, N}
-%%          <p>place N spaces after each colon and comma in the resulting 
-%%          binary. default is zero</p></li>
-%%          
-%%        <li>indent
-%%          <p>indent is equivalent to {indent, 1}</p></li>
-%%
-%%        <li>{indent, N}
-%%          <p>indent each 'level' of the json structure by N spaces. default is 
-%%          zero</p></li>
-%%      </ul>
-%% @end
-
--spec format(JSON::binary(), Opts::format_opts()) -> binary() | iolist().
-
-format(JSON, Opts) ->
-    jsx_format:format(JSON, Opts).
-    
-
-%% @spec eventify(List::list()) -> jsx_parser_result()
-%% @doc fake the jsx api for any list. useful if you want to serialize a 
-%% structure to json using the pretty printer, or verify a sequence could be 
-%% valid json
-
--spec eventify(List::list()) -> jsx_parser_result().
-
-eventify([]) ->
-    fun() -> 
-        {incomplete, fun(List) when is_list(List) -> 
-                eventify(List)
-            ; (_) ->
-                erlang:error(badarg) 
-        end}
-    end;    
-eventify([Next|Rest]) ->
-    fun() -> {event, Next, eventify(Rest)} end.  
+decoder(Handler, State, Config) -> jsx_decoder:decoder(Handler, State, Config).
 
 
+-type encoder() :: fun((json_term() | end_stream | end_json) -> any()).
 
-%% internal functions
+-spec encoder(Handler::module(), State::any(), Config::list()) -> encoder().
 
-   
-%% encoding detection   
-%% first check to see if there's a bom, if not, use the rfc4627 method for 
-%%   determining encoding. this function makes some assumptions about the 
-%%   validity of the stream which may delay failure later than if an encoding is 
-%%   explicitly provided
+encoder(Handler, State, Config) -> jsx_encoder:encoder(Handler, State, Config).
 
-detect_encoding(OptsList) ->
-    fun(Stream) -> detect_encoding(Stream, OptsList) end.
-    
-%% utf8 bom detection    
-detect_encoding(<<16#ef, 16#bb, 16#bf, Rest/binary>>, Opts) -> 
-    (jsx_utf8:parser(Opts))(Rest);    
-%% utf32-little bom detection (this has to come before utf16-little or it'll 
-%%   match that)
-detect_encoding(<<16#ff, 16#fe, 0, 0, Rest/binary>>, Opts) -> 
-    (jsx_utf32le:parser(Opts))(Rest);        
-%% utf16-big bom detection
-detect_encoding(<<16#fe, 16#ff, Rest/binary>>, Opts) -> 
-    (jsx_utf16:parser(Opts))(Rest);
-%% utf16-little bom detection
-detect_encoding(<<16#ff, 16#fe, Rest/binary>>, Opts) -> 
-    (jsx_utf16le:parser(Opts))(Rest);
-%% utf32-big bom detection
-detect_encoding(<<0, 0, 16#fe, 16#ff, Rest/binary>>, Opts) -> 
-    (jsx_utf32:parser(Opts))(Rest);
-    
-%% utf32-little null order detection
-detect_encoding(<<X, 0, 0, 0, _Rest/binary>> = JSON, Opts) when X =/= 0 ->
-    (jsx_utf32le:parser(Opts))(JSON);
-%% utf32-big null order detection
-detect_encoding(<<0, 0, 0, X, _Rest/binary>> = JSON, Opts) when X =/= 0 ->
-    (jsx_utf32:parser(Opts))(JSON);
-%% utf16-little null order detection
-detect_encoding(<<X, 0, _, 0, _Rest/binary>> = JSON, Opts) when X =/= 0 ->
-    (jsx_utf16le:parser(Opts))(JSON);
-%% utf16-big null order detection
-detect_encoding(<<0, X, 0, _, _Rest/binary>> = JSON, Opts) when X =/= 0 ->
-    (jsx_utf16:parser(Opts))(JSON);
-%% utf8 null order detection
-detect_encoding(<<X, Y, _Rest/binary>> = JSON, Opts) when X =/= 0, Y =/= 0 ->
-    (jsx_utf8:parser(Opts))(JSON);
-    
-%% a problem, to autodetect naked single digits' encoding, there is not enough 
-%%   data to conclusively determine the encoding correctly. below is an attempt 
-%%   to solve the problem
-detect_encoding(<<X>>, Opts) when X =/= 0 ->
-    {incomplete,
-        fun(end_stream) ->
-                try
-                    {incomplete, Next} = (jsx_utf8:parser(Opts))(<<X>>),
-                    Next(end_stream)
-                    catch error:function_clause -> {error, {badjson, <<X>>}}
-                end
-            ; (Stream) -> detect_encoding(<<X, Stream/binary>>, Opts) 
-        end
-    };
-detect_encoding(<<0, X>>, Opts) when X =/= 0 ->
-    {incomplete,
-        fun(end_stream) ->
-                try
-                    {incomplete, Next} = (jsx_utf16:parser(Opts))(<<0, X>>),
-                    Next(end_stream)
-                    catch error:function_clause -> {error, {badjson, <<0, X>>}}
-                end
-            ; (Stream) -> detect_encoding(<<0, X, Stream/binary>>, Opts) 
-        end
-    };
-detect_encoding(<<X, 0>>, Opts) when X =/= 0 ->
-    {incomplete,
-        fun(end_stream) ->
-                try
-                    {incomplete, Next} = (jsx_utf16le:parser(Opts))(<<X, 0>>),
-                    Next(end_stream)
-                    catch error:function_clause -> {error, {badjson, <<X, 0>>}}
-                end
-            ; (Stream) -> detect_encoding(<<X, 0, Stream/binary>>, Opts)
-        end
-    };
-    
-%% not enough input, request more
-detect_encoding(Bin, Opts) ->
-    {incomplete,
-        fun(end_stream) -> {error, {badjson, Bin}}
-            ; (Stream) -> detect_encoding(<<Bin/binary, Stream/binary>>, Opts) 
-        end
-    }.
-    
+
+-type token() :: [token()]
+    | start_object
+    | end_object
+    | start_array
+    | end_array
+    | {key, binary()}
+    | {string, binary()}
+    | binary()
+    | {number, integer() | float()}
+    | {integer, integer()}
+    | {float, float()}
+    | integer()
+    | float()
+    | {literal, true}
+    | {literal, false}
+    | {literal, null}
+    | true
+    | false
+    | null
+    | end_json.
+
+
+-type parser() :: fun((token() | end_stream) -> any()).
+
+-spec parser(Handler::module(), State::any(), Config::list()) -> parser().
+
+parser(Handler, State, Config) -> jsx_parser:parser(Handler, State, Config).
+
+-opaque internal_state() :: tuple().
+
+-spec resume(Term::json_text() | token(), InternalState::internal_state(), Config::list()) -> any().
+
+resume(Term, {decoder, State, Handler, Acc, Stack}, Config) ->
+    jsx_decoder:resume(Term, State, Handler, Acc, Stack, jsx_config:parse_config(Config));
+resume(Term, {parser, State, Handler, Stack}, Config) ->
+    jsx_parser:resume(Term, State, Handler, Stack, jsx_config:parse_config(Config)).
+
+
 
 -ifdef(TEST).
 
-jsx_decoder_test_() ->
-    jsx_decoder_gen(load_tests(?eunit_test_path)).
-    
-    
-jsx_decoder_gen([]) -> [];    
-jsx_decoder_gen(Tests) -> 
-    jsx_decoder_gen(Tests, [utf8,
-        utf16,
-        {utf16, little},
-        utf32,
-        {utf32, little}
-    ]).    
-    
-jsx_decoder_gen([_Test|Rest], []) ->
-    jsx_decoder_gen(Rest);
-jsx_decoder_gen([Test|_] = Tests, [Encoding|Encodings]) ->
-    Name = lists:flatten(proplists:get_value(name, Test) ++ " :: " ++
-        io_lib:format("~p", [Encoding])
-    ),
-    JSON = unicode:characters_to_binary(proplists:get_value(json, Test),
-        unicode,
-        Encoding
-    ),
-    JSX = proplists:get_value(jsx, Test),
-    Flags = proplists:get_value(jsx_flags, Test, []),
-    {generator,
-        fun() ->
-            [{Name, ?_assert(decode(JSON, Flags) =:= JSX)} 
-                | {generator, 
-                        fun() -> [{Name ++ " incremental", ?_assert(
-                                incremental_decode(JSON, Flags) =:= JSX)
-                            } | jsx_decoder_gen(Tests, Encodings)]
-                        end
-                }
-            ]
-        end
+-include_lib("eunit/include/eunit.hrl").
+
+
+%% test handler
+init([]) -> [].
+
+handle_event(end_json, State) -> lists:reverse([end_json] ++ State);
+handle_event(Event, State) -> [Event] ++ State.
+
+
+test_cases() ->
+    empty_array()
+    ++ nested_array()
+    ++ empty_object()
+    ++ nested_object()
+    ++ strings()
+    ++ literals()
+    ++ integers()
+    ++ floats()
+    ++ compound_object().
+
+%% segregate these so we can skip them in `jsx_to_term`
+special_test_cases() -> special_objects() ++ special_array().
+
+
+empty_array() -> [{"[]", <<"[]">>, [], [start_array, end_array]}].
+
+
+nested_array() ->
+    [{
+        "[[[]]]",
+        <<"[[[]]]">>,
+        [[[]]],
+        [start_array, start_array, start_array, end_array, end_array, end_array]
+    }].
+
+
+empty_object() -> [{"{}", <<"{}">>, [{}], [start_object, end_object]}].
+
+
+nested_object() ->
+    [{
+        "{\"key\":{\"key\":{}}}",
+        <<"{\"key\":{\"key\":{}}}">>,
+        [{<<"key">>, [{<<"key">>, [{}]}]}],
+        [
+            start_object,
+                {key, <<"key">>},
+                start_object,
+                    {key, <<"key">>},
+                    start_object,
+                    end_object,
+                end_object,
+            end_object
+        ]
+    }].
+
+
+naked_strings() ->
+    Raw = [
+        "",
+        "hello world"
+    ],
+    [
+        {
+            String,
+            <<"\"", (list_to_binary(String))/binary, "\"">>,
+            list_to_binary(String),
+            [{string, list_to_binary(String)}]
+        }
+        || String <- Raw
+    ].
+
+
+strings() ->
+    naked_strings()
+    ++ [ wrap_with_array(Test) || Test <- naked_strings() ]
+    ++ [ wrap_with_object(Test) || Test <- naked_strings() ].
+
+
+naked_integers() ->
+    Raw = [
+        1, 2, 3,
+        127, 128, 129,
+        255, 256, 257,
+        65534, 65535, 65536,
+        18446744073709551616,
+        18446744073709551617
+    ],
+    [
+        {
+            integer_to_list(X),
+            list_to_binary(integer_to_list(X)),
+            X,
+            [{integer, X}]
+        }
+        || X <- Raw ++ [ -1 * Y || Y <- Raw ] ++ [0]
+    ].
+
+
+integers() ->
+    naked_integers()
+    ++ [ wrap_with_array(Test) || Test <- naked_integers() ]
+    ++ [ wrap_with_object(Test) || Test <- naked_integers() ].
+
+
+naked_floats() ->
+    Raw = [
+        0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+        1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,
+        1234567890.0987654321,
+        0.0e0,
+        1234567890.0987654321e16,
+        0.1e0, 0.1e1, 0.1e2, 0.1e4, 0.1e8, 0.1e16, 0.1e308,
+        1.0e0, 1.0e1, 1.0e2, 1.0e4, 1.0e8, 1.0e16, 1.0e308,
+        2.2250738585072014e-308,    %% min normalized float
+        1.7976931348623157e308,     %% max normalized float
+        5.0e-324,                   %% min denormalized float
+        2.225073858507201e-308      %% max denormalized float
+    ],
+    [
+        {
+            sane_float_to_list(X),
+            list_to_binary(sane_float_to_list(X)),
+            X,
+            [{float, X}]
+        }
+        || X <- Raw ++ [ -1 * Y || Y <- Raw ]
+    ].
+
+
+floats() ->
+    naked_floats()
+    ++ [ wrap_with_array(Test) || Test <- naked_floats() ]
+    ++ [ wrap_with_object(Test) || Test <- naked_floats() ].
+
+
+naked_literals() ->
+    [
+        {
+            atom_to_list(Literal),
+            atom_to_binary(Literal, unicode),
+            Literal,
+            [{literal, Literal}]
+        }
+        || Literal <- [true, false, null]
+    ].
+
+
+literals() ->
+    naked_literals()
+    ++ [ wrap_with_array(Test) || Test <- naked_literals() ]
+    ++ [ wrap_with_object(Test) || Test <- naked_literals() ].
+
+
+compound_object() ->
+    [{
+        "[{\"alpha\":[1,2,3],\"beta\":{\"alpha\":[1.0,2.0,3.0],\"beta\":[true,false]}},[{}]]",
+        <<"[{\"alpha\":[1,2,3],\"beta\":{\"alpha\":[1.0,2.0,3.0],\"beta\":[true,false]}},[{}]]">>,
+        [[{<<"alpha">>, [1, 2, 3]}, {<<"beta">>, [{<<"alpha">>, [1.0, 2.0, 3.0]}, {<<"beta">>, [true, false]}]}], [[{}]]],
+        [
+            start_array,
+                start_object,
+                    {key, <<"alpha">>},
+                    start_array,
+                        {integer, 1},
+                        {integer, 2},
+                        {integer, 3},
+                    end_array,
+                    {key, <<"beta">>},
+                    start_object,
+                        {key, <<"alpha">>},
+                        start_array,
+                            {float, 1.0},
+                            {float, 2.0},
+                            {float, 3.0},
+                        end_array,
+                        {key, <<"beta">>},
+                        start_array,
+                            {literal, true},
+                            {literal, false},
+                        end_array,
+                    end_object,
+                end_object,
+                start_array,
+                    start_object,
+                    end_object,
+                end_array,
+            end_array
+        ]
+    }].
+
+
+special_objects() ->
+    [
+        {
+            "[{key, atom}]",
+            <<"{\"key\":\"atom\"}">>,
+            [{key, atom}],
+            [start_object, {key, <<"key">>}, {string, <<"atom">>}, end_object]
+        },
+        {
+            "[{1, true}]",
+            <<"{\"1\":true}">>,
+            [{1, true}],
+            [start_object, {key, <<"1">>}, {literal, true}, end_object]
+        }
+    ].
+
+
+special_array() ->
+    [    
+        {
+            "[foo, bar]",
+            <<"[\"foo\",\"bar\"]">>,
+            [foo, bar],
+            [start_array, {string, <<"foo">>}, {string, <<"bar">>}, end_array]
+        }
+    ].
+
+
+wrap_with_array({Title, JSON, Term, Events}) ->
+    {
+        "[" ++ Title ++ "]",
+        <<"[", JSON/binary, "]">>,
+        [Term],
+        [start_array] ++ Events ++ [end_array]
     }.
 
 
-load_tests(Path) ->
-    %% search the specified directory for any files with the .test ending
-    TestSpecs = filelib:wildcard("*.test", Path),
-    load_tests(TestSpecs, Path, []).
-
-load_tests([], _Dir, Acc) ->
-    lists:reverse(Acc);
-load_tests([Test|Rest], Dir, Acc) ->
-    %% should alert about badly formed tests eventually, but for now just skip
-    %% over them
-    case file:consult(Dir ++ "/" ++ Test) of
-        {ok, TestSpec} ->
-            try
-                ParsedTest = parse_tests(TestSpec, Dir),
-                load_tests(Rest, Dir, [ParsedTest] ++ Acc)
-            catch _:_ ->
-                load_tests(Rest, Dir, Acc)
-            end
-        ; {error, _Reason} ->
-            load_tests(Rest, Dir, Acc)
-    end.
+wrap_with_object({Title, JSON, Term, Events}) ->
+    {
+        "{\"key\":" ++ Title ++ "}",
+        <<"{\"key\":", JSON/binary, "}">>,
+        [{<<"key">>, Term}],
+        [start_object, {key, <<"key">>}] ++ Events ++ [end_object]
+    }.
 
 
-parse_tests(TestSpec, Dir) ->
-    parse_tests(TestSpec, Dir, []).
-    
-parse_tests([{json, Path}|Rest], Dir, Acc) when is_list(Path) ->
-    case file:read_file(Dir ++ "/" ++ Path) of
-        {ok, Bin} -> parse_tests(Rest, Dir, [{json, Bin}] ++ Acc)
-        ; _ -> erlang:error(badarg)
-    end;
-parse_tests([KV|Rest], Dir, Acc) ->
-    parse_tests(Rest, Dir, [KV] ++ Acc);
-parse_tests([], _Dir, Acc) ->
-    Acc.
+sane_float_to_list(X) ->
+    [Output] = io_lib:format("~p", [X]),
+    Output.
 
 
-decode(JSON, Flags) ->
-    P = jsx:parser(Flags),
-    decode_loop(P(JSON), []).
-
-decode_loop({event, end_json, _Next}, Acc) ->
-    lists:reverse([end_json] ++ Acc);
-decode_loop({incomplete, More}, Acc) ->
-    decode_loop(More(end_stream), Acc);
-decode_loop({event, E, Next}, Acc) ->
-    decode_loop(Next(), [E] ++ Acc).
-
-    
-incremental_decode(<<C:1/binary, Rest/binary>>, Flags) ->
-	P = jsx:parser(Flags),
-	incremental_decode_loop(P(C), Rest, []).
-
-incremental_decode_loop({incomplete, Next}, <<>>, Acc) ->
-    incremental_decode_loop(Next(end_stream), <<>>, Acc);	
-incremental_decode_loop({incomplete, Next}, <<C:1/binary, Rest/binary>>, Acc) ->
-	incremental_decode_loop(Next(C), Rest, Acc);	
-incremental_decode_loop({event, end_json, _Next}, _Rest, Acc) ->
-    lists:reverse([end_json] ++ Acc);
-incremental_decode_loop({event, Event, Next}, Rest, Acc) ->
-	incremental_decode_loop(Next(), Rest, [Event] ++ Acc).
+incremental_decode(JSON) ->
+    Final = lists:foldl(
+        fun(Byte, Decoder) -> {incomplete, F} = Decoder(Byte), F end,
+        decoder(jsx, [], [stream]),
+        json_to_bytes(JSON)
+    ),
+    Final(end_stream).
 
 
-multi_decode_test_() ->
+incremental_parse(Events) ->
+    Final = lists:foldl(
+        fun(Event, Parser) -> {incomplete, F} = Parser(Event), F end,
+        parser(?MODULE, [], [stream]),
+        lists:map(fun(X) -> [X] end, Events)
+    ),
+    Final(end_stream).
+
+
+%% used to convert a json text into a list of codepoints to be incrementally
+%% parsed
+json_to_bytes(JSON) -> json_to_bytes(JSON, []).
+
+json_to_bytes(<<>>, Acc) -> [<<>>] ++ lists:reverse(Acc);
+json_to_bytes(<<X, Rest/binary>>, Acc) -> json_to_bytes(Rest, [<<X>>] ++ Acc).
+
+
+%% actual tests!
+decode_test_() ->
+    Data = test_cases(),
+    [{Title, ?_assertEqual(Events ++ [end_json], (decoder(?MODULE, [], []))(JSON))}
+        || {Title, JSON, _, Events} <- Data
+    ] ++
+    [{Title ++ " (incremental)", ?_assertEqual(Events ++ [end_json], incremental_decode(JSON))}
+        || {Title, JSON, _, Events} <- Data
+    ].
+
+
+parse_test_() ->
+    Data = test_cases(),
+    [{Title, ?_assertEqual(Events ++ [end_json], (parser(?MODULE, [], []))(Events ++ [end_json]))}
+        || {Title, _, _, Events} <- Data
+    ] ++
+    [{Title ++ " (incremental)", ?_assertEqual(Events ++ [end_json], incremental_parse(Events))}
+        || {Title, _, _, Events} <- Data
+    ].
+
+
+encode_test_() ->
+    Data = test_cases(),
     [
-        {"multiple values in a single stream", ?_assert(
-            multi_decode(multi_json_body(), []) =:= multi_test_result()
+        {
+            Title, ?_assertEqual(
+                Events ++ [end_json],
+                (jsx:encoder(jsx, [], []))(Term)
+            )
+        } || {Title, _, Term, Events} <- Data
+    ].
+
+end_stream_test_() ->
+    Tokens = [start_object, end_object, end_json],
+    [
+        {"encoder end_stream", ?_assertEqual(
+            Tokens,
+            begin
+                {incomplete, F} = (jsx:parser(jsx, [], [stream]))([start_object, end_object]),
+                F(end_stream)
+            end
+        )},
+        {"encoder end_json", ?_assertEqual(
+            Tokens,
+            begin
+                {incomplete, F} = (jsx:parser(jsx, [], [stream]))([start_object, end_object]),
+                F(end_json)
+            end
+        )},
+        {"decoder end_stream", ?_assertEqual(
+            Tokens,
+            begin {incomplete, F} = (jsx:decoder(jsx, [], [stream]))(<<"{}">>), F(end_stream) end
+        )},
+        {"decoder end_json", ?_assertEqual(
+            Tokens,
+            begin {incomplete, F} = (jsx:decoder(jsx, [], [stream]))(<<"{}">>), F(end_json) end
         )}
     ].
 
-	
-multi_decode(JSON, Flags) ->
-    P = jsx:parser(Flags ++ [{multi_term, true}]),
-    multi_decode_loop(P(JSON), [[]]).
 
-multi_decode_loop({incomplete, _Next}, [[]|Acc]) ->
-    lists:reverse(Acc);
-multi_decode_loop({event, end_json, Next}, [S|Acc]) ->
-    multi_decode_loop(Next(), [[]|[lists:reverse(S)] ++ Acc]);
-multi_decode_loop({event, E, Next}, [S|Acc]) ->
-    multi_decode_loop(Next(), [[E] ++ S] ++ Acc).
-	
-	
-multi_json_body() ->
-    <<"0 1 -1 1e1 0.7 0.7e-1 truefalsenull {} {\"key\": \"value\"}[] [1, 2, 3]\"hope this works\"">>.
-
-multi_test_result() ->
-    [[{integer, "0"}],
-        [{integer, "1"}],
-        [{integer, "-1"}],
-        [{float, "1.0e1"}],
-        [{float, "0.7"}],
-        [{float, "0.7e-1"}],
-        [{literal, true}],
-        [{literal, false}],
-        [{literal, null}],
-        [start_object, end_object],
-        [start_object, {key, "key"}, {string, "value"}, end_object],
-        [start_array, end_array],
-        [start_array, {integer, "1"}, {integer, "2"}, {integer, "3"}, end_array],
-        [{string, "hope this works"}]
-    ].
-
-
-    
 -endif.

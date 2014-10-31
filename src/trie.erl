@@ -56,7 +56,7 @@
 %%%
 %%% @author Michael Truog <mjtruog [at] gmail (dot) com>
 %%% @copyright 2010-2013 Michael Truog
-%%% @version 1.1.1 {@date} {@time}
+%%% @version 1.4.0 {@date} {@time}
 %%%------------------------------------------------------------------------
 
 -module(trie).
@@ -66,6 +66,7 @@
 -export([append/3,
          append_list/3,
          erase/2,
+         erase_similar/2,
          fetch/2,
          fetch_keys/1,
          fetch_keys_similar/2,
@@ -73,6 +74,7 @@
          find/2,
          find_match/2,
          find_prefix/2,
+         find_prefixes/2,
          find_prefix_longest/2,
          find_similar/2,
          fold/3,
@@ -85,6 +87,7 @@
          foreach/2,
          from_list/1,
          is_key/2,
+         is_pattern/1,
          is_prefix/2,
          is_prefixed/2,
          is_prefixed/3,
@@ -95,11 +98,13 @@
          new/0,
          new/1,
          pattern_parse/2,
+         pattern_parse/3,
          prefix/3,
          size/1,
          store/2,
          store/3,
          to_list/1,
+         to_list_similar/2,
          update/3,
          update/4,
          update_counter/3,
@@ -235,107 +240,6 @@ find_match_element_N([H | T], Key, WildValue, {I0, _, Data} = Node) ->
             end
     end.
 
-%%-------------------------------------------------------------------------
-%% @doc
-%% ===Find a value in a trie by prefix.===
-%% The atom 'prefix' is returned if the string supplied is a prefix
-%% for a key that has previously been stored within the trie, but no
-%% value was found, since there was no exact match for the string supplied.
-%% @end
-%%-------------------------------------------------------------------------
-
--spec find_prefix(string(), trie()) -> {ok, any()} | 'prefix' | 'error'.
-
-find_prefix([H | _], {I0, I1, _})
-    when H < I0; H > I1 ->
-    error;
-
-find_prefix([H], {I0, _, Data})
-    when is_integer(H) ->
-    case erlang:element(H - I0 + 1, Data) of
-        {{_, _, _}, error} ->
-            prefix;
-        {{_, _, _}, Value} ->
-            {ok, Value};
-        {_, error} ->
-            error;
-        {[], Value} ->
-            {ok, Value};
-        {_, _} ->
-            prefix
-    end;
-
-find_prefix([H | T], {I0, _, Data})
-    when is_integer(H) ->
-    case erlang:element(H - I0 + 1, Data) of
-        {{_, _, _} = Node, _} ->
-            find_prefix(T, Node);
-        {_, error} ->
-            error;
-        {T, Value} ->
-            {ok, Value};
-        {L, _} ->
-            case lists:prefix(T, L) of
-                true ->
-                    prefix;
-                false ->
-                    error
-            end
-    end;
-
-find_prefix(_, []) ->
-    error.
-
-%%-------------------------------------------------------------------------
-%% @doc
-%% ===Find the longest key in a trie that is a prefix to the passed string.===
-%% @end
-%%-------------------------------------------------------------------------
-
--spec find_prefix_longest(Match :: string(),
-                          Node :: trie()) -> {ok, string(), any()} | 'error'.
-
-find_prefix_longest(Match, Node) when is_tuple(Node) ->
-    find_prefix_longest(Match, [], error, Node);
-find_prefix_longest(_Match, _Node) ->
-    error.
-
-find_prefix_longest([H | T], Key, LastMatch, {I0, I1, Data})
-    when is_integer(H), H >= I0, H =< I1 ->
-    {ChildNode, Value} = erlang:element(H - I0 + 1, Data),
-    if
-        is_tuple(ChildNode) ->
-            %% If the prefix matched and there are other child leaf nodes
-            %% for this prefix, then update the last match to the current
-            %% prefix and continue recursing over the trie.
-            NewKey = [H | Key],
-            NewMatch = case Value of
-                           error -> LastMatch;
-                           _     -> {NewKey, Value}
-                       end,
-            find_prefix_longest(T, NewKey, NewMatch, ChildNode);
-        true ->
-            %% If this is a leaf node and the key for the current node is a
-            %% prefix for the passed value, then return a match on the current
-            %% node. Otherwise, return the last match we had found previously.
-            case lists:prefix(ChildNode, T) of
-                true when Value =/= error ->
-                    {ok, lists:reverse([H | Key], ChildNode), Value};
-                _ ->
-                    case LastMatch of
-                        {LastKey, LastValue} ->
-                            {ok, lists:reverse(LastKey), LastValue};
-                        error ->
-                            error
-                    end
-            end
-    end;
-
-find_prefix_longest(_Match, _Key, {LastKey, LastValue}, _Node) ->
-    {ok, lists:reverse(LastKey), LastValue};
-
-find_prefix_longest(_Match, _Key, error, _Node) ->
-    error.
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -615,6 +519,31 @@ fold_match_element_N([$* | T] = Match, F, A, I, N, Offset, Prefix, Mid, Data) ->
                         I + 1, N, Offset, Prefix, Mid, Data)
             end
     end.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Test to determine if a string is a pattern.===
+%% "*" is the wildcard character (equivalent to the ".+" regex) and
+%% "**" is forbidden.
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec is_pattern(Pattern :: string()) -> 'true' | 'false'.
+
+is_pattern(Pattern) ->
+    is_pattern(Pattern, false).
+
+is_pattern([], Result) ->
+    Result;
+
+is_pattern([$*, $* | _], _) ->
+    erlang:exit(badarg);
+
+is_pattern([$* | Pattern], _) ->
+    is_pattern(Pattern, true);
+
+is_pattern([_ | Pattern], Result) ->
+    is_pattern(Pattern, Result).
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -901,7 +830,42 @@ itera_element(F, {trie_itera_done, A} = ReturnValue, I, N, Offset, Key, Data) ->
                     L :: string()) -> list(string()) | 'error'.
 
 pattern_parse(Pattern, L) ->
-    pattern_parse(Pattern, L, []).
+    pattern_parse(Pattern, L, default).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Parse a string based on the supplied wildcard pattern.===
+%% "*" is the wildcard character (equivalent to the ".+" regex) and
+%% "**" is forbidden.
+%% This function assumes there is a direct match with the characters following
+%% the wildcard characters, so "*/" will parse "//" but not "///".  That means
+%% it currently depends on the pattern delimiters being unique
+%% (not part of what is consumed by the wildcard).  So, it is possible to have
+%% a find_match/2 argument that doesn't parse with the pattern it matches
+%% (since it is matching the most exact pattern while not making any
+%%  decisions based on the delimiters following wildcard characters, i.e.,
+%%  it backtracks through the string to match when the current path through
+%%  the pattern doesn't match).  This function's current implementation
+%% is simple to keep the pattern parse efficient, without the need to
+%% consume extra memory.
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec pattern_parse(Pattern :: string(),
+                    L :: string(),
+                    Option :: default | with_suffix) ->
+    list(string()) | {list(string()), string()} | 'error'.
+
+pattern_parse(Pattern, L, Option)
+    when (Option =:= default) orelse
+         (Option =:= with_suffix) ->
+    pattern_parse(Pattern, L, [], [], Option).
+
+pattern_parse_result(default, Parameters, _) ->
+    Parameters;
+
+pattern_parse_result(with_suffix, Parameters, Suffix) ->
+    {Parameters, lists:reverse(Suffix)}.
 
 pattern_parse_element(_, [], _) ->
     error;
@@ -909,31 +873,39 @@ pattern_parse_element(_, [], _) ->
 pattern_parse_element(C, [C | T], Segment) ->
     {ok, T, lists:reverse(Segment)};
 
+pattern_parse_element(_, [$* | _], _) ->
+    erlang:exit(badarg);
+
 pattern_parse_element(C, [H | T], L) ->
     pattern_parse_element(C, T, [H | L]).
 
-pattern_parse([], [], Parsed) ->
-    lists:reverse(Parsed);
+pattern_parse([], [], Parsed, Suffix, Option) ->
+    pattern_parse_result(Option, lists:reverse(Parsed), Suffix);
 
-pattern_parse([], [_ | _], _) ->
+pattern_parse([], [_ | _], _, _, _) ->
     error;
 
-pattern_parse([$*], [_ | _] = L, Parsed) ->
-    lists:reverse([L | Parsed]);
+pattern_parse([_ | _], [$* | _], _, _, _) ->
+    erlang:exit(badarg);
 
-pattern_parse([$*, C | Pattern], [H | T], Parsed) ->
-    true = C =/= $*,
+pattern_parse([$*], [_ | _] = L, Parsed, _, Option) ->
+    pattern_parse_result(Option, lists:reverse([L | Parsed]), []);
+
+pattern_parse([$*, $* | _], [_ | _], _, _, _) ->
+    erlang:exit(badarg);
+
+pattern_parse([$*, C | Pattern], [H | T], Parsed, _, Option) ->
     case pattern_parse_element(C, T, [H]) of
         {ok, NewL, Segment} ->
-            pattern_parse(Pattern, NewL, [Segment | Parsed]);
+            pattern_parse(Pattern, NewL, [Segment | Parsed], [C], Option);
         error ->
             error
     end;
 
-pattern_parse([C | Pattern], [C | L], Parsed) ->
-    pattern_parse(Pattern, L, Parsed);
+pattern_parse([C | Pattern], [C | L], Parsed, Suffix, Option) ->
+    pattern_parse(Pattern, L, Parsed, [C | Suffix], Option);
 
-pattern_parse(_, _, _) ->
+pattern_parse(_, _, _, _, _) ->
     error.
 
 %%-------------------------------------------------------------------------
@@ -1089,6 +1061,19 @@ test() ->
     error = trie:find("aaaa", RootNode4),
     {ok, 2.5} = trie:find_prefix("aaaa", RootNode5),
     prefix = trie:find_prefix("aaaa", RootNode4),
+    [] = trie:find_prefixes("z", RootNode4),
+    [{"aa", 1}] = trie:find_prefixes("aa", RootNode4),
+    [{"aa", 1},
+     {"aaa",2}] = trie:find_prefixes("aaaa", RootNode4),
+    [{"ab",5}] = trie:find_prefixes("absolut", RootNode4),
+    [{"ab",5},
+     {"aba", 6}] = trie:find_prefixes("aba", RootNode4),
+    [] = trie:find_prefixes("bar", RootNode4),
+    [{"aa",1},
+     {"aaa",2},
+     {"aaaaaaaa",3},
+     {"aaaaaaaaaaa",4}
+     ] = trie:find_prefixes("aaaaaaaaaaaaaaaaaaaaaddddddaa", RootNode4),
     error = trie:find_prefix_longest("a", RootNode4),
     {ok, "aa", 1} = trie:find_prefix_longest("aa", RootNode4),
     {ok, "aaa", 2} = trie:find_prefix_longest("aaaa", RootNode4),
@@ -1096,7 +1081,9 @@ test() ->
     {ok, "aba", 6} = trie:find_prefix_longest("aba", RootNode4),
     {ok, "aaaaaaaa", 3} = trie:find_prefix_longest("aaaaaaaaa", RootNode4),
     error = trie:find_prefix_longest("bar", RootNode4),
-    {ok, "aaaaaaaaaaa", 4} = trie:find_prefix_longest("aaaaaaaaaaaaaaaaaaaaaddddddaa", RootNode4),
+    {ok,
+     "aaaaaaaaaaa",
+     4} = trie:find_prefix_longest("aaaaaaaaaaaaaaaaaaaaaddddddaa", RootNode4),
     2.5 = trie:fetch("aaaa", RootNode5),
     {'EXIT', {if_clause, _}} = (catch trie:fetch("aaaa", RootNode4)),
     RootNode4 = trie:erase("a", trie:erase("aaaa", RootNode5)),
@@ -1142,7 +1129,9 @@ test() ->
     ["aba",
      "aaa"
      ] = trie:fold_match("a*a", fun(K, _, L) -> [K | L] end, [], RootNode4),
-    {'EXIT',badarg} = (catch trie:fold_match("a**a", fun(K, _, L) -> [K | L] end, [], RootNode4)),
+    {'EXIT', badarg} = (catch trie:fold_match("a**a",
+                                              fun(K, _, L) -> [K | L] end,
+                                              [], RootNode4)),
     RootNode6 = trie:new([
         {"*",      1},
         {"aa*",    2},
@@ -1164,11 +1153,28 @@ test() ->
     ["aa"] = trie:pattern_parse("aa*", "aaaa"),
     ["b"] = trie:pattern_parse("aa*", "aab"),
     ["b"] = trie:pattern_parse("aa*b", "aabb"),
+    {["b"], "b"} = trie:pattern_parse("aa*b", "aabb", with_suffix),
     ["b", "b"] = trie:pattern_parse("aa*a*", "aabab"),
+    {["b", "b"], ""} = trie:pattern_parse("aa*a*", "aabab", with_suffix),
     ["b", "bb"] = trie:pattern_parse("aa*a*", "aababb"),
     ["bb", "b"] = trie:pattern_parse("aa*a*", "aabbab"),
     ["bb", "bb"] = trie:pattern_parse("aa*a*", "aabbabb"),
     error = trie:pattern_parse("aa*a*", "aaabb"),
+    [] = trie:pattern_parse("aaabb", "aaabb"),
+    {[], "aaabb"} = trie:pattern_parse("aaabb", "aaabb", with_suffix),
+    false = trie:is_pattern("abcdef"),
+    true = trie:is_pattern("abc*d*ef"),
+    {'EXIT',badarg} = (catch trie:is_pattern("abc**ef")),
+    RootNode7 = trie:from_list([{"00", zeros}, {"11", ones}]),
+    RootNode8 = trie:from_list([{"0", zero}, {"1", one}]),
+    ["00"] = trie:fetch_keys_similar("02", RootNode7),
+    [] = trie:fetch_keys_similar("2", RootNode7),
+    ["11"] = trie:fetch_keys_similar("1", RootNode7),
+    ["1"] = trie:fetch_keys_similar("1", RootNode8),
+    ["0"] = trie:fetch_keys_similar("0", RootNode8),
+    ["00"] = trie:fetch_keys_similar("0", RootNode7),
+    RootNode9 = trie:new([{"abc", 123}]),
+    {97,97,{{"bc",456}}} = trie:store("abc", 456, RootNode9),
     ok.
 
 %%%------------------------------------------------------------------------
@@ -1237,7 +1243,6 @@ wildcard_match_lists([C | Match], [C | L]) ->
 wildcard_match_lists(_, L) ->
     wildcard_match_lists_valid(L, false).
 
-
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
@@ -1246,9 +1251,9 @@ internal_test_() ->
         {"internal tests", ?_assertEqual(ok, test())}
     ].
 
-proper_test_() ->
-    {timeout, 600, [
-        {"proper tests", ?_assert(trie_proper:qc_run(?MODULE))}
-    ]}.
+%proper_test_() ->
+%    {timeout, 600, [
+%        {"proper tests", ?_assert(trie_proper:qc_run(?MODULE))}
+%    ]}.
 
 -endif.

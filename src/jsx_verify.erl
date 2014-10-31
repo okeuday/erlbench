@@ -1,6 +1,6 @@
 %% The MIT License
 
-%% Copyright (c) 2010 Alisdair Sullivan <alisdairsullivan@yahoo.ca>
+%% Copyright (c) 2010-2013 alisdair sullivan <alisdairsullivan@yahoo.ca>
 
 %% Permission is hereby granted, free of charge, to any person obtaining a copy
 %% of this software and associated documentation files (the "Software"), to deal
@@ -21,189 +21,153 @@
 %% THE SOFTWARE.
 
 
-%% @hidden hide this module from edoc, exported functions are internal to jsx
-%%   and may be altered or removed without notice
-
-
 -module(jsx_verify).
 
-
--export([is_json/2]).
-
-
--include("./include/jsx_common.hrl").
+-export([is_json/2, is_term/2]).
+-export([init/1, handle_event/2]).
 
 
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
--endif.
+-record(config, {
+    repeated_keys = true
+}).
+
+-type config() :: [].
+-export_type([config/0]).
 
 
+-spec is_json(Source::binary(), Config::config()) -> true | false | {incomplete, jsx:decoder()}.
 
--spec is_json(JSON::binary(), Opts::verify_opts()) -> true | false.
-
-is_json(JSON, Opts) ->
-    P = jsx:parser(extract_parser_opts(Opts)),
-    case proplists:get_value(strict, Opts, true) of
-        true -> collect_strict(P(JSON), [[]])
-        ; false -> collect(P(JSON), [[]])
+is_json(Source, Config) when is_list(Config) ->
+    try (jsx:decoder(?MODULE, Config, jsx_config:extract_config(Config)))(Source)
+    catch error:badarg -> false
     end.
 
 
-extract_parser_opts(Opts) ->
-    extract_parser_opts(Opts, []).
+-spec is_term(Source::any(), Config::config()) -> true | false | {incomplete, jsx:encoder()}.
 
-extract_parser_opts([], Acc) -> Acc;    
-extract_parser_opts([{K,V}|Rest], Acc) ->
-    case lists:member(K, [comments, encoding, unquoted_keys]) of
-        true -> [{K,V}] ++ Acc
-        ; false -> extract_parser_opts(Rest, Acc)
-    end;
-extract_parser_opts([K|Rest], Acc) ->
-    case lists:member(K, [comments, encoding, unquoted_keys]) of
-        true -> [K] ++ Acc
-        ; false -> extract_parser_opts(Rest, Acc)
+is_term(Source, Config) when is_list(Config) ->
+    try (jsx:encoder(?MODULE, Config, jsx_config:extract_config(Config)))(Source)
+    catch error:badarg -> false
     end.
 
 
-%% enforce only arrays and objects at top level
-collect_strict({event, start_object, Next}, Keys) ->
-    collect(Next(), Keys);
-collect_strict({event, start_array, Next}, Keys) ->
-    collect(Next(), Keys);
-collect_strict(_, _) ->
-    false.
+parse_config(Config) -> parse_config(Config, #config{}).
+
+parse_config([no_repeated_keys|Rest], Config) ->
+    parse_config(Rest, Config#config{repeated_keys=false});
+%% deprecated, use `no_repeated_keys`
+parse_config([{repeated_keys, Val}|Rest], Config) when Val == true; Val == false ->
+    parse_config(Rest, Config#config{repeated_keys=Val});
+parse_config([repeated_keys|Rest], Config) ->
+    parse_config(Rest, Config#config{repeated_keys=true});
+parse_config([{K, _}|Rest] = Options, Config) ->
+    case lists:member(K, jsx_config:valid_flags()) of
+        true -> parse_config(Rest, Config);
+        false -> erlang:error(badarg, [Options, Config])
+    end;
+parse_config([K|Rest] = Options, Config) ->
+    case lists:member(K, jsx_config:valid_flags()) of
+        true -> parse_config(Rest, Config);
+        false -> erlang:error(badarg, [Options, Config])
+    end;
+parse_config([], Config) ->
+    Config.
+
+-type state() :: {#config{}, any()}.
+-spec init(Config::proplists:proplist()) -> state().
+
+init(Config) -> {parse_config(Config), []}.
 
 
-collect({event, end_json, _Next}, _Keys) ->
-    true;
+-spec handle_event(Event::any(), State::state()) -> state().
 
+handle_event(end_json, _) -> true;
 
-%% allocate new key accumulator at start_object, discard it at end_object    
-collect({event, start_object, Next}, Keys) -> collect(Next(), [[]|Keys]);
-collect({event, end_object, Next}, [_|Keys]) -> collect(Next(), [Keys]);
+handle_event(_, {Config, _} = State) when Config#config.repeated_keys == true -> State;
 
+handle_event(start_object, {Config, Keys}) -> {Config, [dict:new()] ++ Keys};
+handle_event(end_object, {Config, [_|Keys]}) -> {Config, Keys};
 
-%% check to see if key has already been encountered, if not add it to the key 
-%%   accumulator and continue, else return false 
-collect({event, {key, Key}, Next}, [Current|Keys]) ->
-    case lists:member(Key, Current) of
-        true -> false
-        ; false -> collect(Next(), [[Key] ++ Current] ++ Keys)
+handle_event({key, Key}, {Config, [CurrentKeys|Keys]}) ->
+    case dict:is_key(Key, CurrentKeys) of
+        true -> erlang:error(badarg);
+        false -> {Config, [dict:store(Key, blah, CurrentKeys)|Keys]}
     end;
 
-                
-collect({event, _, Next}, Keys) ->
-    collect(Next(), Keys);
+handle_event(_, State) -> State.
 
 
-%% needed to parse numbers that don't have trailing whitespace in less strict 
-%%   mode    
-collect({incomplete, More}, Keys) ->
-    collect(More(end_stream), Keys);
-
-    
-collect(_, _) ->
-    false.
-    
-    
 
 %% eunit tests
 -ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
 
-true_test_() ->
+
+config_test_() ->
     [
-        {"empty object", ?_assert(is_json(<<"{}">>, []) =:= true)},
-        {"empty array", ?_assert(is_json(<<"[]">>, []) =:= true)},
-        {"whitespace", 
-            ?_assert(is_json(<<" \n    \t   \r   [true]   \t    \n\r  ">>, 
-                    []
-                ) =:= true
-            )
-        },
-        {"nested terms", 
-            ?_assert(is_json(
-                    <<"[{ \"x\": [ {}, {}, {} ], \"y\": [{}] }, {}, [[[]]]]">>, 
-                    []
-                ) =:= true
-            )
-        },
-        {"numbers", 
-            ?_assert(is_json(
-                    <<"[ -1.0, -1, -0, 0, 1e-1, 1, 1.0, 1e1 ]">>, 
-                    []
-                ) =:= true
-            )
-        },
-        {"strings", 
-            ?_assert(is_json(
-                    <<"[ \"a\", \"string\", \"in\", \"multiple\", \"acts\" ]">>, 
-                    []
-                ) =:= true
-            )
-        },
-        {"literals", 
-            ?_assert(is_json(<<"[ true, false, null ]">>, []) =:= true)
-        },
-        {"nested objects", 
-            ?_assert(is_json(<<"{\"key\": { \"key\": true}}">>, []) =:= true)
-        }
+        {"empty config", ?_assertEqual(#config{}, parse_config([]))},
+        {"no repeat keys", ?_assertEqual(#config{repeated_keys=false}, parse_config([no_repeated_keys]))},
+        {"bare repeated keys", ?_assertEqual(#config{}, parse_config([repeated_keys]))},
+        {"repeated keys true", ?_assertEqual(
+            #config{},
+            parse_config([{repeated_keys, true}])
+        )},
+        {"repeated keys false", ?_assertEqual(
+            #config{repeated_keys=false},
+            parse_config([{repeated_keys, false}])
+        )},
+        {"invalid opt flag", ?_assertError(badarg, parse_config([error]))},
+        {"invalid opt tuple", ?_assertError(badarg, parse_config([{error, true}]))}
     ].
 
-false_test_() ->
+
+repeated_keys_test_() ->
+    RepeatedKey = [
+        start_object,
+            {key, <<"alpha">>},
+            {literal, true},
+            {key, <<"alpha">>},
+            {literal, false},
+        end_object,
+        end_json
+    ],
+    NestedKey = [
+        start_object,
+            {key, <<"alpha">>},
+            start_object,
+                {key, <<"alpha">>},
+                start_object,
+                    {key, <<"alpha">>},
+                    {literal, true},
+                end_object,
+            end_object,
+        end_object,
+        end_json
+    ],
     [
-        {"naked true", ?_assert(is_json(<<"true">>, []) =:= false)},
-        {"naked number", ?_assert(is_json(<<"1">>, []) =:= false)},
-        {"naked string", 
-            ?_assert(is_json(<<"\"i am not json\"">>, []) =:= false)
-        },
-        {"unbalanced list", ?_assert(is_json(<<"[[[]]">>, []) =:= false)},
-        {"trailing comma", 
-            ?_assert(is_json(<<"[ true, false, null, ]">>, []) =:= false)
-        },
-        {"unquoted key", ?_assert(is_json(<<"{ key: false }">>, []) =:= false)},
-        {"repeated key", 
-            ?_assert(is_json(
-                    <<"{\"key\": true, \"key\": true}">>, 
-                    []
-                ) =:= false
-            )
-        },
-        {"comments", ?_assert(is_json(<<"[ /* a comment */ ]">>, []) =:= false)}
+        {"repeated key", ?_assert(
+            lists:foldl(fun handle_event/2, {#config{}, []}, RepeatedKey)
+        )},
+        {"no repeated key", ?_assertError(
+            badarg,
+            lists:foldl(fun handle_event/2, {#config{repeated_keys=false}, []}, RepeatedKey)
+        )},
+        {"nested key", ?_assert(
+            lists:foldl(fun handle_event/2, {#config{repeated_keys=false}, []}, NestedKey)
+        )}
     ].
-    
-less_strict_test_() ->
+
+
+handle_event_test_() ->
+    Data = jsx:test_cases() ++ jsx:special_test_cases(),
     [
-        {"naked true", 
-            ?_assert(is_json(<<"true">>, [{strict, false}]) =:= true)
-        },
-        {"naked number", 
-            ?_assert(is_json(<<"1">>, [{strict, false}]) =:= true)
-        },
-        {"naked string", 
-            ?_assert(is_json(
-                    <<"\"i am not json\"">>, 
-                    [{strict, false}]
-                ) =:= true
+        {
+            Title, ?_assertEqual(
+                true,
+                lists:foldl(fun handle_event/2, {#config{}, []}, Events ++ [end_json])
             )
-        },
-        {"comments", 
-            ?_assert(is_json(
-                    <<"[ /* a comment */ ]">>, 
-                    [{comments, true}]
-                ) =:= true
-            )
-        },
-        {"unquoted keys",
-            ?_assert(is_json(
-                    <<"{unquotedkey : true}">>,
-                    [{unquoted_keys, true}]
-                ) =:= true
-            )
-        }
-    ].    
-    
+        } || {Title, _, _, Events} <- Data
+    ].
+
+
 -endif.
-
-    
-    

@@ -5,11 +5,8 @@
 %%% @doc
 %%% ==Skew Heap Priority Queue.==
 %%% Ulf Wiger suggested pursuing a skew heap as an optimal Erlang priority
-%%% queue implementation. Testing has shown that this skew heap priority queue
-%%% does perform the fastest of the tested priority queue implementations.
-%%% This implementation was created to
-%%% avoid the slowness within the priority queue used by both RabbitMQ and Riak
-%%% (https://github.com/basho/riak_core/blob/master/src/priority_queue.erl).
+%%% queue implementation. Unfortunately, testing has shown this solution to
+%%% be more than 2 times slower than pqueue.
 %%% @end
 %%%
 %%% BSD LICENSE
@@ -110,8 +107,8 @@ in(Value, P, H) ->
 
 is_empty(empty) ->
     true;
-is_empty({_, empty, empty, queue, Queue}) ->
-    queue:is_empty(Queue);
+is_empty({_, HL, HR, queue, Queue}) ->
+    is_empty(HL) andalso is_empty(HR) andalso queue:is_empty(Queue);
 is_empty(_) ->
     false.
 
@@ -473,4 +470,19 @@ merge({P, HL1, HR1, queue, Queue}, {P, HL2, HR2, element, Value}) ->
     {P, merge(HL1, HR1), merge(HL2, HR2), queue, queue:in(Value, Queue)};
 merge({P, HL1, HR1, element, Value}, {P, HL2, HR2, queue, Queue}) ->
     {P, merge(HL1, HR1), merge(HL2, HR2), queue, queue:in(Value, Queue)}.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+internal_test_() ->
+    [
+        {"internal tests", ?_assertEqual(ok, test())}
+    ].
+
+proper_test_() ->
+    {timeout, 600, [
+        {"proper tests", ?_assert(pqueue_proper:qc_pq2())}
+    ]}.
+
+-endif.
 
