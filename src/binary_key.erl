@@ -75,6 +75,9 @@ data17(_) ->
 data18(_) ->
     hashdict:new().
 
+data19(_) ->
+    maps:new().
+
 gb_trees_set(Tree, String, Value) ->
     gb_trees:enter(String, Value, Tree).
 
@@ -118,6 +121,9 @@ btrie_set(Trie, String, Value) ->
 hashdict_set(Dict, String, Value) ->
     hashdict:store(String, Value, Dict).
 
+maps_set(Map, String, Value) ->
+    maps:put(String, Value, Map).
+
 gb_trees_get(Tree, String) ->
     gb_trees:get(String, Tree).
 
@@ -159,6 +165,10 @@ btrie_get(Trie, String) ->
 
 hashdict_get(Dict, String) ->
     hashdict:fetch(String, Dict).
+
+maps_get(Map, String) ->
+    {ok, Value} = maps:find(String, Map),
+    Value.
 
 get(_, _, []) ->
     ok;
@@ -254,8 +264,12 @@ test(N) ->
     % btrie
     {S17, D17} = timer:tc(?MODULE, set, [fun btrie_set/3, data17(N), Words]),
     {G17, _} = timer:tc(?MODULE, get, [fun btrie_get/2, D17, Words]),
+    % hashdict
     {S18, D18} = timer:tc(?MODULE, set, [fun hashdict_set/3, data18(N), Words]),
     {G18, _} = timer:tc(?MODULE, get, [fun hashdict_get/2, D18, Words]),
+    % map in Erlang/OTP 18.0
+    {S19, D19} = timer:tc(?MODULE, set, [fun maps_set/3, data19(N), Words]),
+    {G19, _} = timer:tc(?MODULE, get, [fun maps_get/2, D19, Words]),
     %% results
     [
         #result{name = "gb_trees",            get =  G1, set =  S1},
@@ -275,7 +289,8 @@ test(N) ->
         #result{name = "ets x10 read (ordered_set)",
                 get = erlang:round(G16 / 10.0)},
         #result{name = "btrie",               get = G17, set = S17},
-        #result{name = "hashdict",            get = G18, set = S18}
+        #result{name = "hashdict",            get = G18, set = S18},
+        #result{name = "map",                 get = G19, set = S19}
     ].
 
 read_wordlist() ->
