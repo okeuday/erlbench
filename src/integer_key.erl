@@ -88,6 +88,9 @@ data20(_) ->
 data21(_) ->
     hashdict:new().
 
+data22(_) ->
+    maps:new().
+
 array_set(Array, I, Value) ->
     %% array indexing starts at 0
     array:set(I - 1, Value, Array).
@@ -142,6 +145,9 @@ btree7_set(Tree, I, Value) ->
 hashdict_set(Dict, I, Value) ->
     hashdict:store(I, Value, Dict).
 
+maps_set(Map, I, Value) ->
+    maps:put(I, Value, Map).
+
 array_get(Array, I) ->
     array:get(I - 1, Array).
 
@@ -194,6 +200,10 @@ btree7_get(Tree, I) ->
 
 hashdict_get(Dict, I) ->
     hashdict:fetch(I, Dict).
+
+maps_get(Map, I) ->
+    {ok, Value} = maps:find(I, Map),
+    Value.
 
 get(_, _, []) ->
     ok;
@@ -332,10 +342,16 @@ test(N) ->
                           [fun btree7_set/3, data20(N), Integers]),
     {G20, _} = timer:tc(?MODULE, get,
                         [fun btree7_get/2, D20, Integers]),
+    % hashdict
     {S21, D21} = timer:tc(?MODULE, set,
                           [fun hashdict_set/3, data21(N), Integers]),
     {G21, _} = timer:tc(?MODULE, get,
                         [fun hashdict_get/2, D21, Integers]),
+    % map in Erlang/OTP 18.0
+    {S22, D22} = timer:tc(?MODULE, set,
+                          [fun maps_set/3, data22(N), Integers]),
+    {G22, _} = timer:tc(?MODULE, get,
+                        [fun maps_get/2, D22, Integers]),
     %% results
     [
         #result{name = "array (fixed)",       get =  G1, set =  S1},
@@ -358,6 +374,7 @@ test(N) ->
         %#result{name = "ets x10 read (ordered_set)", get = erlang:round(G18 / 10.0)},
         %#result{name = "ntree",               get = G19, set = S19},
         #result{name = "btree7",              get = G20, set = S20},
-        #result{name = "hashdict",            get = G21, set = S21}
+        #result{name = "hashdict",            get = G21, set = S21},
+        #result{name = "map",                 get = G22, set = S22}
     ].
 
