@@ -1,3 +1,7 @@
+#-*-Mode:make;coding:utf-8;tab-width:4;c-basic-offset:4-*-
+# ex: set ft=make fenc=utf-8 sts=4 ts=4 sw=4 noet nomod:
+ERL_OPTS=+C multi_time_warp
+COMPILE_FLAGS=-DERLANG_OTP_VERSION_18
 COMPILE_FLAGS_HIPE=\
 icode_range,icode_ssa_const_prop,\
 icode_ssa_copy_prop,icode_type,icode_inline_bifs,\
@@ -41,19 +45,19 @@ COMPILE_FLAGS_O3_INLINE=\
 +inline_list_funcs
 
 ifeq ($(OPTIMIZE),4)
-COMPILE_FLAGS=$(COMPILE_FLAGS_O3_INLINE)
+COMPILE_FLAGS+=$(COMPILE_FLAGS_O3_INLINE)
 else
 ifeq ($(OPTIMIZE),3)
-COMPILE_FLAGS=$(COMPILE_FLAGS_O3)
+COMPILE_FLAGS+=$(COMPILE_FLAGS_O3)
 else
 ifeq ($(OPTIMIZE),2)
-COMPILE_FLAGS=$(COMPILE_FLAGS_O2)
+COMPILE_FLAGS+=$(COMPILE_FLAGS_O2)
 else
 ifeq ($(OPTIMIZE),1)
-COMPILE_FLAGS=$(COMPILE_FLAGS_O1)
+COMPILE_FLAGS+=$(COMPILE_FLAGS_O1)
 else
 $(warning OPTIMIZE defaults to 0 (no compile options))
-COMPILE_FLAGS=$(COMPILE_FLAGS_O0)
+COMPILE_FLAGS+=$(COMPILE_FLAGS_O0)
 endif
 endif
 endif
@@ -62,7 +66,7 @@ endif
 all: test
 
 test: beam
-	erl -noshell -pz ebin -s run test -s init stop
+	erl $(ERL_OPTS) -noshell -pz ebin -s run test -s init stop
 
 clean:
 	rm -f ebin/*.beam

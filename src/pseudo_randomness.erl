@@ -7,12 +7,28 @@
 
 -include("erlbench.hrl").
 
-%-define(PRINT_DISTRIBUTION, true).
+-define(PRINT_DISTRIBUTION, true).
 
-test_now() ->
-    % most uniform solution
-    {_, _, I} = erlang:now(),
+test_18_bxor_abs() ->
+    I = erlang:abs(erlang:monotonic_time() bxor erlang:unique_integer()),
     (I rem 10) + 1.
+
+test_18_monotonic() ->
+    I = erlang:abs(erlang:monotonic_time()),
+    (I rem 10) + 1.
+
+test_18_unique() ->
+    % not uniform at all, excluded from test
+    I = erlang:unique_integer([positive]),
+    (I rem 10) + 1.
+
+test_18_rand() ->
+    rand:uniform(10).
+
+%test_now() ->
+%    % most uniform solution
+%    {_, _, I} = erlang:now(),
+%    (I rem 10) + 1.
 
 test_crypto() ->
     crypto:rand_uniform(1, 11).
@@ -105,9 +121,9 @@ test(N) ->
       B4:32/unsigned-integer>> = crypto:strong_rand_bytes(16),
     random:seed(B1, B2, B3),
     random_wh06_int:seed(B1, B2, B3, B4),
-    counts_init(),
-    {Test1, _} = timer:tc(?MODULE, run, [N, fun test_now/0]),
-    counts_print("erlang:now/0"),
+    %counts_init(),
+    %{Test1, _} = timer:tc(?MODULE, run, [N, fun test_now/0]),
+    %counts_print("erlang:now/0"),
     counts_init(),
     {Test2, _} = timer:tc(?MODULE, run, [N, fun test_crypto/0]),
     counts_print("crypto:rand_uniform/2"),
@@ -144,19 +160,46 @@ test(N) ->
     %counts_init(),
     %{Test11, _} = timer:tc(?MODULE, run, [N, fun test_make_ref/0]),
     %counts_print("erlang:make_ref/0"),
+    counts_init(),
+    {Test12, _} = timer:tc(?MODULE, run, [N, fun test_18_bxor_abs/0]),
+    counts_print("18_bxor_abs"),
+    counts_init(),
+    {Test13, _} = timer:tc(?MODULE, run, [N, fun test_18_monotonic/0]),
+    counts_print("18_monotonic"),
+    %counts_init(),
+    %{Test14, _} = timer:tc(?MODULE, run, [N, fun test_18_unique/0]),
+    %counts_print("18_unique"),
+    _ = rand:seed(exsplus, {B1, B2, B3}),
+    counts_init(),
+    {Test15, _} = timer:tc(?MODULE, run, [N, fun test_18_rand/0]),
+    counts_print("18_rand_exsplus"),
+    _ = rand:seed(exs64, {B1, B2, B3}),
+    counts_init(),
+    {Test16, _} = timer:tc(?MODULE, run, [N, fun test_18_rand/0]),
+    counts_print("18_rand_exs64"),
+    _ = rand:seed(exs1024, {B1, B2, B3}),
+    counts_init(),
+    {Test17, _} = timer:tc(?MODULE, run, [N, fun test_18_rand/0]),
+    counts_print("18_rand_exs1024"),
 
     %% results
     [
-        #result{name = "erlang:now/0",               get =  Test1},
+        %#result{name = "erlang:now/0",               get =  Test1},
         #result{name = "crypto:rand_uniform/2",      get =  Test2},
         #result{name = "random:uniform/1",           get =  Test3},
         %#result{name = "erlang:process_info(,red)",  get =  Test4},
         %#result{name = "erlang:statistics(red)",     get =  Test5},
         %#result{name = "erlang:statistics(io)",      get =  Test6},
         #result{name = "random_wh06_int:uniform/1",  get =  Test7},
-        #result{name = "os:timestamp/0",             get =  Test8}%,
+        #result{name = "os:timestamp/0",             get =  Test8},
         %#result{name = "erlang:statistics(gc)",      get =  Test9},
         %#result{name = "erlang:statistics(cs)",      get =  Test10},
         %#result{name = "erlang:make_ref/0 hash",     get =  Test11}
+        #result{name = "18_bxor_abs",                get =  Test12},
+        #result{name = "18_monotonic",               get =  Test13},
+        %#result{name = "18_unique",                  get =  Test14}%,
+        #result{name = "18_rand_exsplus",            get =  Test15},
+        #result{name = "18_rand_exs64",              get =  Test16},
+        #result{name = "18_rand_exs1024",            get =  Test17}%,
     ].
 
