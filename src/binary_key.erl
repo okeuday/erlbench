@@ -78,6 +78,12 @@ data18(_) ->
 data19(_) ->
     maps:new().
 
+data20(_) ->
+    blookupv:new().
+
+data21(_) ->
+    blookupf:new(32).
+
 gb_trees_set(Tree, String, Value) ->
     gb_trees:enter(String, Value, Tree).
 
@@ -124,6 +130,12 @@ hashdict_set(Dict, String, Value) ->
 maps_set(Map, String, Value) ->
     maps:put(String, Value, Map).
 
+blookupv_set(Lookup, String, empty) ->
+    blookupv:store(String, <<>>, Lookup).
+
+blookupf_set(Lookup, String, empty) ->
+    blookupf:store(String, <<>>, Lookup).
+
 gb_trees_get(Tree, String) ->
     gb_trees:get(String, Tree).
 
@@ -169,6 +181,14 @@ hashdict_get(Dict, String) ->
 maps_get(Map, String) ->
     {ok, Value} = maps:find(String, Map),
     Value.
+
+blookupv_get(Lookup, String) ->
+    {ok, <<>>} = blookupv:find(String, Lookup),
+    empty.
+
+blookupf_get(Lookup, String) ->
+    {ok, <<>>} = blookupf:find(String, Lookup),
+    empty.
 
 get(_, _, []) ->
     ok;
@@ -270,6 +290,13 @@ test(N) ->
     % map in Erlang/OTP 18.0
     {S19, D19} = timer:tc(?MODULE, set, [fun maps_set/3, data19(N), Words]),
     {G19, _} = timer:tc(?MODULE, get, [fun maps_get/2, D19, Words]),
+    % blookupv
+    {S20a, D20} = timer:tc(?MODULE, set, [fun blookupv_set/3, data20(N), Words]),
+    {S20b, _} = timer:tc(?MODULE, set, [fun blookupv_set/3, D20, Words]),
+    {G20, _} = timer:tc(?MODULE, get, [fun blookupv_get/2, D20, Words]),
+    % blookupf
+    {S21, D21} = timer:tc(?MODULE, set, [fun blookupf_set/3, data21(N), Words]),
+    {G21, _} = timer:tc(?MODULE, get, [fun blookupf_get/2, D21, Words]),
     %% results
     [
         #result{name = "gb_trees",            get =  G1, set =  S1},
@@ -290,7 +317,10 @@ test(N) ->
                 get = erlang:round(G16 / 10.0)},
         #result{name = "btrie",               get = G17, set = S17},
         #result{name = "hashdict",            get = G18, set = S18},
-        #result{name = "map",                 get = G19, set = S19}
+        #result{name = "map",                 get = G19, set = S19},
+        #result{name = "blookupv",            get = G20, set = S20a,
+                                              update = S20b},
+        #result{name = "blookupf",            get = G21, set = S21}
     ].
 
 read_wordlist() ->

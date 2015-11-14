@@ -74,6 +74,8 @@ clean:
 BUILT=\
     ebin/aadict.beam \
     ebin/binary_key.beam \
+    ebin/blookupf.beam \
+    ebin/blookupv.beam \
     ebin/btree7.beam \
     ebin/btrie.beam \
     ebin/ejson_decode.beam \
