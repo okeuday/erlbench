@@ -77,6 +77,10 @@ test() ->
                 set = 1.0e9,
                 update = 1.0e9},
             FinalResults),
+            MinResults = #result{
+                get = erlang:max(1.0e-9, Min#result.get),
+                set = erlang:max(1.0e-9, Min#result.set),
+                update = erlang:max(1.0e-9, Min#result.update)},
 
             Header = io_lib:format("N == ~w (~w runs)~n", [Count, ?RUNS]),
             Output = trie:foldl(fun(_, Value, L) ->
@@ -85,11 +89,11 @@ test() ->
                     Value#result.set /= undefined,
                     Value#result.update /= undefined ->
                         MinGet = round(Value#result.get /
-                                       Min#result.get, 1),
+                                       MinResults#result.get, 1),
                         MinSet = round(Value#result.set /
-                                       Min#result.set, 1),
+                                       MinResults#result.set, 1),
                         MinUpdate = round(Value#result.update /
-                                          Min#result.update, 1),
+                                          MinResults#result.update, 1),
                         L ++ io_lib:format("~20s "
                                            "get: ~10w us (~5w), "
                                            "set: ~10w us (~5w), "
@@ -104,9 +108,9 @@ test() ->
                     Value#result.get /= undefined,
                     Value#result.set /= undefined ->
                         MinGet = round(Value#result.get /
-                                       Min#result.get, 1),
+                                       MinResults#result.get, 1),
                         MinSet = round(Value#result.set /
-                                       Min#result.set, 1),
+                                       MinResults#result.set, 1),
                         L ++ io_lib:format("~20s "
                                            "get: ~10w us (~5w), "
                                            "set: ~10w us (~5w)~n", [
@@ -117,7 +121,7 @@ test() ->
                                             MinSet]);
                     Value#result.get /= undefined ->
                         MinGet = round(Value#result.get /
-                                       Min#result.get, 1),
+                                       MinResults#result.get, 1),
                         L ++ io_lib:format("~20s "
                                            "get: ~10w us (~5w)~n", [
                                             Value#result.name,
