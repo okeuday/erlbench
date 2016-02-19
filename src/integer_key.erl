@@ -251,10 +251,10 @@ test(N) ->
     {G2, _} = timer:tc(?MODULE, get,
                        [fun array_get/2, D2, Integers]),
     %% tuple
-    {S3, D3} = timer:tc(?MODULE, set,
-                        [fun tuple_set/3, data3(N), Integers]),
-    {G3, _} = timer:tc(?MODULE, get,
-                       [fun tuple_get/2, D3, Integers]),
+    %{S3, D3} = timer:tc(?MODULE, set,
+    %                    [fun tuple_set/3, data3(N), Integers]),
+    %{G3, _} = timer:tc(?MODULE, get,
+    %                   [fun tuple_get/2, D3, Integers]),
     %% gb_trees
     {S4, D4} = timer:tc(?MODULE, set,
                         [fun gb_trees_set/3, data4(N), Integers]),
@@ -356,7 +356,7 @@ test(N) ->
     [
         #result{name = "array (fixed)",       get =  G1, set =  S1},
         #result{name = "array (dynamic)",     get =  G2, set =  S2},
-        #result{name = "tuple",               get =  G3, set =  S3},
+        %#result{name = "tuple",               get =  G3, set =  S3},
         #result{name = "gb_trees",            get =  G4, set =  S4},
         #result{name = "rbdict",              get =  G5, set =  S5},
         #result{name = "aadict",              get =  G6, set =  S6},

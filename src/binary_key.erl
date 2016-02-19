@@ -291,12 +291,12 @@ test(N) ->
     {S19, D19} = timer:tc(?MODULE, set, [fun maps_set/3, data19(N), Words]),
     {G19, _} = timer:tc(?MODULE, get, [fun maps_get/2, D19, Words]),
     % blookupv
-    {S20a, D20} = timer:tc(?MODULE, set, [fun blookupv_set/3, data20(N), Words]),
-    {S20b, _} = timer:tc(?MODULE, set, [fun blookupv_set/3, D20, Words]),
-    {G20, _} = timer:tc(?MODULE, get, [fun blookupv_get/2, D20, Words]),
+    %{S20a, D20} = timer:tc(?MODULE, set, [fun blookupv_set/3, data20(N), Words]),
+    %{S20b, _} = timer:tc(?MODULE, set, [fun blookupv_set/3, D20, Words]),
+    %{G20, _} = timer:tc(?MODULE, get, [fun blookupv_get/2, D20, Words]),
     % blookupf
-    {S21, D21} = timer:tc(?MODULE, set, [fun blookupf_set/3, data21(N), Words]),
-    {G21, _} = timer:tc(?MODULE, get, [fun blookupf_get/2, D21, Words]),
+    %{S21, D21} = timer:tc(?MODULE, set, [fun blookupf_set/3, data21(N), Words]),
+    %{G21, _} = timer:tc(?MODULE, get, [fun blookupf_get/2, D21, Words]),
     %% results
     [
         #result{name = "gb_trees",            get =  G1, set =  S1},
@@ -317,10 +317,10 @@ test(N) ->
                 get = erlang:round(G16 / 10.0)},
         #result{name = "btrie",               get = G17, set = S17},
         #result{name = "hashdict",            get = G18, set = S18},
-        #result{name = "map",                 get = G19, set = S19},
-        #result{name = "blookupv",            get = G20, set = S20a,
-                                              update = S20b},
-        #result{name = "blookupf",            get = G21, set = S21}
+        #result{name = "map",                 get = G19, set = S19}%,
+        %#result{name = "blookupv",            get = G20, set = S20a,
+        %                                      update = S20b},
+        %#result{name = "blookupf",            get = G21, set = S21}
     ].
 
 read_wordlist() ->
