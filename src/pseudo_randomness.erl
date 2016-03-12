@@ -36,7 +36,13 @@ test_crypto() ->
 test_random() ->
     random:uniform(10).
 
-test_random_wh06() ->
+test_random_wh82() ->
+    random_wh82:uniform(10).
+
+test_random_wh82_int() ->
+    random_wh82_int:uniform(10).
+
+test_random_wh06_int() ->
     random_wh06_int:uniform(10).
 
 test_reductions1() ->
@@ -119,14 +125,13 @@ test(N) ->
       B2:32/unsigned-integer,
       B3:32/unsigned-integer,
       B4:32/unsigned-integer>> = crypto:strong_rand_bytes(16),
-    random:seed(B1, B2, B3),
-    random_wh06_int:seed(B1, B2, B3, B4),
     %counts_init(),
     %{Test1, _} = timer:tc(?MODULE, run, [N, fun test_now/0]),
     %counts_print("erlang:now/0"),
     counts_init(),
     {Test2, _} = timer:tc(?MODULE, run, [N, fun test_crypto/0]),
     counts_print("crypto:rand_uniform/2"),
+    random:seed(B1, B2, B3),
     counts_init(),
     {Test3, _} = timer:tc(?MODULE, run, [N, fun test_random/0]),
     counts_print("random:uniform/1"),
@@ -142,8 +147,9 @@ test(N) ->
     %counts_init(),
     %{Test6, _} = timer:tc(?MODULE, run, [N, fun test_stats_io/0]),
     %counts_print("erlang:statistics(io)"),
+    random_wh06_int:seed(B1, B2, B3, B4),
     counts_init(),
-    {Test7, _} = timer:tc(?MODULE, run, [N, fun test_random_wh06/0]),
+    {Test7, _} = timer:tc(?MODULE, run, [N, fun test_random_wh06_int/0]),
     counts_print("random_wh06_int:uniform/1"),
     counts_init(),
     {Test8, _} = timer:tc(?MODULE, run, [N, fun test_timestamp/0]),
@@ -181,6 +187,14 @@ test(N) ->
     counts_init(),
     {Test17, _} = timer:tc(?MODULE, run, [N, fun test_18_rand/0]),
     counts_print("18_rand_exs1024"),
+    random_wh82:seed(B1, B2, B3),
+    counts_init(),
+    {Test18, _} = timer:tc(?MODULE, run, [N, fun test_random_wh82/0]),
+    counts_print("random_wh82:uniform/1"),
+    random_wh82_int:seed(B1, B2, B3),
+    counts_init(),
+    {Test19, _} = timer:tc(?MODULE, run, [N, fun test_random_wh82_int/0]),
+    counts_print("random_wh82_int:uniform/1"),
 
     %% results
     [
@@ -200,6 +214,8 @@ test(N) ->
         %#result{name = "18_unique",                  get =  Test14}%,
         #result{name = "18_rand_exsplus",            get =  Test15},
         #result{name = "18_rand_exs64",              get =  Test16},
-        #result{name = "18_rand_exs1024",            get =  Test17}%,
+        #result{name = "18_rand_exs1024",            get =  Test17},
+        #result{name = "random_wh82:uniform/1",      get =  Test18},
+        #result{name = "random_wh82_int:uniform/1",  get =  Test19}%,
     ].
 

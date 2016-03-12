@@ -119,6 +119,8 @@ BUILT=\
     ebin/priority_queue.beam \
     ebin/queue_in_out.beam \
     ebin/random_wh06_int.beam \
+    ebin/random_wh82.beam \
+    ebin/random_wh82_int.beam \
     ebin/rbdict.beam \
     ebin/rfc4627.beam \
     ebin/run.beam \
