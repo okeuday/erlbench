@@ -205,7 +205,7 @@ test(N) ->
     counts_print("random_wh82_int:uniform/1"),
     counts_init(),
     {Test20, _} = timer:tc(?MODULE, run, [N, fun test_18_erlang_timestamp/0]),
-    counts_print("erlang:system_time(micro_seconds)"),
+    counts_print("18_erlang:system_time(micro_seconds)"),
 
     %% results
     [
@@ -228,6 +228,6 @@ test(N) ->
         #result{name = "18_rand_exs1024",            get =  Test17},
         #result{name = "random_wh82:uniform/1",      get =  Test18},
         #result{name = "random_wh82_int:uniform/1",  get =  Test19},
-        #result{name = "erlang:system_time/1",       get =  Test20}%,
+        #result{name = "18_erlang:system_time/1",    get =  Test20}%,
     ].
 
