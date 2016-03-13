@@ -66,6 +66,10 @@ test_timestamp() ->
     {_, _, I} = os:timestamp(),
     (I rem 10) + 1.
 
+test_18_erlang_timestamp() ->
+    I = erlang:system_time(micro_seconds),
+    (I rem 10) + 1.
+
 test_garbage_collections() ->
     % super slow
     {I1, I2, I3} = erlang:statistics(garbage_collection),
@@ -121,17 +125,21 @@ run(N, F) ->
     run(N - 1, F).
 
 test(N) ->
-    <<B1:32/unsigned-integer,
-      B2:32/unsigned-integer,
-      B3:32/unsigned-integer,
-      B4:32/unsigned-integer>> = crypto:strong_rand_bytes(16),
+    <<I1:32/unsigned-integer,
+      I2:32/unsigned-integer,
+      I3:32/unsigned-integer,
+      I4:32/unsigned-integer>> = crypto:strong_rand_bytes(16),
+    IP1 = I1 + 1,
+    IP2 = I2 + 1,
+    IP3 = I3 + 1,
+    IP4 = I4 + 1,
     %counts_init(),
     %{Test1, _} = timer:tc(?MODULE, run, [N, fun test_now/0]),
     %counts_print("erlang:now/0"),
     counts_init(),
     {Test2, _} = timer:tc(?MODULE, run, [N, fun test_crypto/0]),
     counts_print("crypto:rand_uniform/2"),
-    random:seed(B1, B2, B3),
+    random:seed(IP1, IP2, IP3),
     counts_init(),
     {Test3, _} = timer:tc(?MODULE, run, [N, fun test_random/0]),
     counts_print("random:uniform/1"),
@@ -147,7 +155,7 @@ test(N) ->
     %counts_init(),
     %{Test6, _} = timer:tc(?MODULE, run, [N, fun test_stats_io/0]),
     %counts_print("erlang:statistics(io)"),
-    random_wh06_int:seed(B1, B2, B3, B4),
+    random_wh06_int:seed(IP1, IP2, IP3, IP4),
     counts_init(),
     {Test7, _} = timer:tc(?MODULE, run, [N, fun test_random_wh06_int/0]),
     counts_print("random_wh06_int:uniform/1"),
@@ -175,26 +183,29 @@ test(N) ->
     %counts_init(),
     %{Test14, _} = timer:tc(?MODULE, run, [N, fun test_18_unique/0]),
     %counts_print("18_unique"),
-    _ = rand:seed(exsplus, {B1, B2, B3}),
+    _ = rand:seed(exsplus, {IP1, IP2, IP3}),
     counts_init(),
     {Test15, _} = timer:tc(?MODULE, run, [N, fun test_18_rand/0]),
     counts_print("18_rand_exsplus"),
-    _ = rand:seed(exs64, {B1, B2, B3}),
+    _ = rand:seed(exs64, {IP1, IP2, IP3}),
     counts_init(),
     {Test16, _} = timer:tc(?MODULE, run, [N, fun test_18_rand/0]),
     counts_print("18_rand_exs64"),
-    _ = rand:seed(exs1024, {B1, B2, B3}),
+    _ = rand:seed(exs1024, {IP1, IP2, IP3}),
     counts_init(),
     {Test17, _} = timer:tc(?MODULE, run, [N, fun test_18_rand/0]),
     counts_print("18_rand_exs1024"),
-    random_wh82:seed(B1, B2, B3),
+    random_wh82:seed(IP1, IP2, IP3),
     counts_init(),
     {Test18, _} = timer:tc(?MODULE, run, [N, fun test_random_wh82/0]),
     counts_print("random_wh82:uniform/1"),
-    random_wh82_int:seed(B1, B2, B3),
+    random_wh82_int:seed(IP1, IP2, IP3),
     counts_init(),
     {Test19, _} = timer:tc(?MODULE, run, [N, fun test_random_wh82_int/0]),
     counts_print("random_wh82_int:uniform/1"),
+    counts_init(),
+    {Test20, _} = timer:tc(?MODULE, run, [N, fun test_18_erlang_timestamp/0]),
+    counts_print("erlang:system_time(micro_seconds)"),
 
     %% results
     [
@@ -216,6 +227,7 @@ test(N) ->
         #result{name = "18_rand_exs64",              get =  Test16},
         #result{name = "18_rand_exs1024",            get =  Test17},
         #result{name = "random_wh82:uniform/1",      get =  Test18},
-        #result{name = "random_wh82_int:uniform/1",  get =  Test19}%,
+        #result{name = "random_wh82_int:uniform/1",  get =  Test19},
+        #result{name = "erlang:system_time/1",       get =  Test20}%,
     ].
 
