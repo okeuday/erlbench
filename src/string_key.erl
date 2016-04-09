@@ -87,6 +87,9 @@ data20(_) ->
 data21(_) ->
     maps:new().
 
+data22(_) ->
+    ttdict:new().
+
 gb_trees_set(Tree, String, Value) ->
     gb_trees:enter(String, Value, Tree).
 
@@ -142,6 +145,9 @@ hashdict_set(Dict, String, Value) ->
 maps_set(Map, String, Value) ->
     maps:put(String, Value, Map).
 
+ttdict_set(Dict, String, Value) ->
+    ttdict:store(String, Value, Dict).
+
 gb_trees_get(Tree, String) ->
     gb_trees:get(String, Tree).
 
@@ -196,6 +202,9 @@ hashdict_get(Dict, String) ->
 maps_get(Map, String) ->
     {ok, Value} = maps:find(String, Map),
     Value.
+
+ttdict_get(Dict, String) ->
+    ttdict:fetch(String, Dict).
 
 get(_, _, []) ->
     ok;
@@ -307,6 +316,9 @@ test(N) ->
     % map in Erlang/OTP 18.0
     {S21, D21} = timer:tc(?MODULE, set, [fun maps_set/3, data21(N), Words]),
     {G21, _} = timer:tc(?MODULE, get, [fun maps_get/2, D21, Words]),
+    % ttdict from https://github.com/rvirding/luerl
+    {S22, D22} = timer:tc(?MODULE, set, [fun ttdict_set/3, data22(N), Words]),
+    {G22, _} = timer:tc(?MODULE, get, [fun ttdict_get/2, D22, Words]),
     %% results
     [
         #result{name = "gb_trees",            get =  G1, set =  S1},
@@ -330,7 +342,8 @@ test(N) ->
         %#result{name = "htrie",               get = G18, set = S18},
         %#result{name = "hamt",                get = G19, set = S19}
         #result{name = "hashdict",            get = G20, set = S20},
-        #result{name = "map",                 get = G21, set = S21}
+        #result{name = "map",                 get = G21, set = S21},
+        #result{name = "ttdict",              get = G22, set = S22}
     ].
 
 read_wordlist() ->

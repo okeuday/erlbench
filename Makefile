@@ -128,6 +128,7 @@ BUILT=\
     ebin/string_key.beam \
     ebin/trie.beam \
     ebin/trie_prefix.beam \
+    ebin/ttdict.beam \
     ebin/uuid_creation.beam \
     ebin/uuid.beam
 
