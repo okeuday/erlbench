@@ -7,8 +7,8 @@
 
 -include("erlbench.hrl").
 
-test_ceil_1() ->
-    X = 1.5,
+test_ceil_1(I) ->
+    X = I + 0.5,
     T = trunc(X),
     if
        X > T ->
@@ -17,19 +17,21 @@ test_ceil_1() ->
            T
     end.
 
-test_ceil_2() ->
-    X = 1.5,
+test_ceil_2(I) ->
+    X = I + 0.5,
     trunc(trunc(X)).
 
-run(1, F) ->
-    F();
-run(N, F) ->
-    F(),
-    run(N - 1, F).
+run(1 = I, F) ->
+    Value = F(I),
+    true = is_number(Value);
+run(I, F) ->
+    Value = F(I),
+    true = is_number(Value),
+    run(I - 1, F).
 
 test(N) ->
-    {Test1, _} = timer:tc(?MODULE, run, [N, fun test_ceil_1/0]),
-    {Test2, _} = timer:tc(?MODULE, run, [N, fun test_ceil_2/0]),
+    {Test1, _} = timer:tc(?MODULE, run, [N, fun test_ceil_1/1]),
+    {Test2, _} = timer:tc(?MODULE, run, [N, fun test_ceil_2/1]),
 
     %% results
     [
