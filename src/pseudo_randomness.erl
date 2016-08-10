@@ -61,8 +61,6 @@ test_stats_io() ->
     ((I1 bxor I2) rem 10) + 1.
 
 test_timestamp() ->
-    % not entirely uniform (6 doesn't occur often enough on my machine)
-    % but good enough when normal processing delays are involved
     {_, _, I} = os:timestamp(),
     (I rem 10) + 1.
 
@@ -85,8 +83,6 @@ test_make_ref() ->
     erlang:phash2(erlang:make_ref(), 10) + 1.
 
 test_19_perf_counter() ->
-    % not entirely uniform (6 doesn't occur often enough on my machine)
-    % but good enough when normal processing delays are involved
     I = os:perf_counter(micro_seconds),
     (I rem 10) + 1.
 
