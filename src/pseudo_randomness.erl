@@ -84,6 +84,12 @@ test_make_ref() ->
     % not uniform, but quickest
     erlang:phash2(erlang:make_ref(), 10) + 1.
 
+test_19_perf_counter() ->
+    % not entirely uniform (6 doesn't occur often enough on my machine)
+    % but good enough when normal processing delays are involved
+    I = os:perf_counter(micro_seconds),
+    (I rem 10) + 1.
+
 -ifdef(PRINT_DISTRIBUTION).
 counts_init() ->
     lists:foreach(fun(I) ->
@@ -206,6 +212,9 @@ test(N) ->
     counts_init(),
     {Test20, _} = timer:tc(?MODULE, run, [N, fun test_18_erlang_timestamp/0]),
     counts_print("18_erlang:system_time(micro_seconds)"),
+    counts_init(),
+    {Test21, _} = timer:tc(?MODULE, run, [N, fun test_19_perf_counter/0]),
+    counts_print("19_os:perf_counter(micro_seconds)"),
 
     %% results
     [
@@ -228,6 +237,7 @@ test(N) ->
         #result{name = "18_rand_exs1024",            get =  Test17},
         #result{name = "random_wh82:uniform/1",      get =  Test18},
         #result{name = "random_wh82_int:uniform/1",  get =  Test19},
-        #result{name = "18_erlang:system_time/1",    get =  Test20}%,
+        #result{name = "18_erlang:system_time/1",    get =  Test20},
+        #result{name = "19_os:perf_counter/1",       get =  Test21}%,
     ].
 

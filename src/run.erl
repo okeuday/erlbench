@@ -17,10 +17,10 @@
 %-define(COUNTS, [100]).
 %-define(TESTS, [json_encode, json_decode]).
 
-%-define(COUNTS, [10000]).
-%-define(TESTS, [pseudo_randomness]).
--define(COUNTS, [10000000]).
--define(TESTS, [math_speed]).
+-define(COUNTS, [10000]).
+-define(TESTS, [pseudo_randomness]).
+%-define(COUNTS, [10000000]).
+%-define(TESTS, [math_speed]).
 
 %-define(COUNTS, [1000000]).
 %-define(TESTS, [pqueue_priority0, pqueue_priorities2, pqueue_priorities41,
