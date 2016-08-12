@@ -70,6 +70,8 @@ test: beam
 
 clean:
 	rm -f ebin/*.beam
+	rm -f c_src/*.o
+	rm -f priv/*.so
 
 BUILT=\
     ebin/aadict.beam \
@@ -108,6 +110,7 @@ BUILT=\
     ebin/mochinum.beam \
     ebin/nicefloats.beam \
     ebin/ntree.beam \
+    ebin/os_time.beam \
     ebin/pseudo_randomness.beam \
     ebin/pqueue.beam \
     ebin/pqueue2.beam \
@@ -133,7 +136,14 @@ BUILT=\
     ebin/uuid_creation.beam \
     ebin/uuid.beam
 
-beam: $(BUILT)
+beam: $(BUILT) priv/libos_time.so
+
+priv/libos_time.so: c_src/os_time.o
+	@mkdir -p priv
+	gcc -shared -o $@ $<
+
+c_src/%.o: c_src/%.c
+	gcc -c -fPIC -o $@ $<
 
 ebin/%.beam: src/%.erl
 	@mkdir -p ebin

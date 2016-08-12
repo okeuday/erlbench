@@ -86,6 +86,10 @@ test_19_perf_counter() ->
     I = os:perf_counter(micro_seconds),
     (I rem 10) + 1.
 
+test_os_time_perf_counter() ->
+    I = os_time:perf_counter(),
+    (I rem 10) + 1.
+
 -ifdef(PRINT_DISTRIBUTION).
 counts_init() ->
     lists:foreach(fun(I) ->
@@ -211,6 +215,9 @@ test(N) ->
     counts_init(),
     {Test21, _} = timer:tc(?MODULE, run, [N, fun test_19_perf_counter/0]),
     counts_print("19_os:perf_counter(micro_seconds)"),
+    counts_init(),
+    {Test22, _} = timer:tc(?MODULE, run, [N, fun test_os_time_perf_counter/0]),
+    counts_print("os_time:perf_counter()"),
 
     %% results
     [
@@ -234,6 +241,7 @@ test(N) ->
         #result{name = "random_wh82:uniform/1",      get =  Test18},
         #result{name = "random_wh82_int:uniform/1",  get =  Test19},
         #result{name = "18_erlang:system_time/1",    get =  Test20},
-        #result{name = "19_os:perf_counter/1",       get =  Test21}%,
+        #result{name = "19_os:perf_counter/1",       get =  Test21},
+        #result{name = "os_time:perf_counter/0",     get =  Test22}%,
     ].
 
