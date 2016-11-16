@@ -68,6 +68,10 @@ test_18_erlang_timestamp() ->
     I = erlang:system_time(micro_seconds),
     (I rem 10) + 1.
 
+test_18_os_system_time() ->
+    I = os:system_time(micro_seconds),
+    (I rem 10) + 1.
+
 test_garbage_collections() ->
     % super slow
     {I1, I2, I3} = erlang:statistics(garbage_collection),
@@ -218,6 +222,9 @@ test(N) ->
     counts_init(),
     {Test22, _} = timer:tc(?MODULE, run, [N, fun test_os_time_perf_counter/0]),
     counts_print("os_time:perf_counter()"),
+    counts_init(),
+    {Test23, _} = timer:tc(?MODULE, run, [N, fun test_18_os_system_time/0]),
+    counts_print("18_os:system_time(micro_seconds)"),
 
     %% results
     [
@@ -242,6 +249,7 @@ test(N) ->
         #result{name = "random_wh82_int:uniform/1",  get =  Test19},
         #result{name = "18_erlang:system_time/1",    get =  Test20},
         #result{name = "19_os:perf_counter/1",       get =  Test21},
-        #result{name = "os_time:perf_counter/0",     get =  Test22}%,
+        #result{name = "os_time:perf_counter/0",     get =  Test22},
+        #result{name = "18_os:system_time/1",        get =  Test23}%,
     ].
 
