@@ -1,0 +1,20 @@
+%-*-Mode:erlang;coding:utf-8;tab-width:4;c-basic-offset:4;indent-tabs-mode:()-*-
+% ex: set ft=erlang fenc=utf-8 sts=4 ts=4 sw=4 et nomod:
+
+{application, quickrand,
+  [{description, "Quick Random Number Generation"},
+   {vsn, "1.6.0"},
+   {modules, [
+        quickrand,
+        quickrand_cache,
+        random_wh82,
+        random_wh06_int]},
+   {registered, []},
+   {applications, [
+        crypto,
+        stdlib,
+        kernel]},
+   {env, [
+        % default cache_size == 64 KB
+        {cache_size, 65536}]}]}.
+

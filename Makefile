@@ -122,6 +122,8 @@ BUILT=\
     ebin/pqueue_priorities64.beam \
     ebin/priority_queue.beam \
     ebin/queue_in_out.beam \
+    ebin/quickrand.beam \
+    ebin/quickrand_cache.beam \
     ebin/random_wh06_int.beam \
     ebin/random_wh82.beam \
     ebin/random_wh82_int.beam \

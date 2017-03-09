@@ -94,6 +94,9 @@ test_os_time_perf_counter() ->
     I = os_time:perf_counter(),
     (I rem 10) + 1.
 
+test_quickrand_cache_uniform() ->
+    quickrand_cache:uniform(10).
+
 -ifdef(PRINT_DISTRIBUTION).
 counts_init() ->
     lists:foreach(fun(I) ->
@@ -225,6 +228,11 @@ test(N) ->
     counts_init(),
     {Test23, _} = timer:tc(?MODULE, run, [N, fun test_18_os_system_time/0]),
     counts_print("18_os:system_time(micro_seconds)"),
+    {ok, _} = application:ensure_all_started(quickrand),
+    ok = quickrand_cache:init(),
+    counts_init(),
+    {Test24, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_cache_uniform/0]),
+    counts_print("quickrand_cache:uniform/1"),
 
     %% results
     [
@@ -250,6 +258,7 @@ test(N) ->
         #result{name = "18_erlang:system_time/1",    get =  Test20},
         #result{name = "19_os:perf_counter/1",       get =  Test21},
         #result{name = "os_time:perf_counter/0",     get =  Test22},
-        #result{name = "18_os:system_time/1",        get =  Test23}%,
+        #result{name = "18_os:system_time/1",        get =  Test23},
+        #result{name = "quickrand_cache:uniform/1",  get =  Test24}%,
     ].
 
