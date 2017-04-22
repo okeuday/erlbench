@@ -3,7 +3,7 @@
 
 -module(pseudo_randomness).
 
--export([test/1, run/2]).
+-export([test/1, run/2, run_s/3]).
 
 -include("erlbench.hrl").
 
@@ -97,6 +97,9 @@ test_os_time_perf_counter() ->
 test_quickrand_cache_uniform() ->
     quickrand_cache:uniform(10).
 
+test_quickrand_cache_uniform(State) ->
+    quickrand_cache:uniform(10, State).
+
 -ifdef(PRINT_DISTRIBUTION).
 counts_init() ->
     lists:foreach(fun(I) ->
@@ -126,16 +129,21 @@ counts_print(_) ->
     ok.
 -endif.
     
-run(1, F) ->
-    Value = F(),
-    counts_incr(Value),
-    true = Value =< 10,
-    Value;
+run(0, _) ->
+    ok;
 run(N, F) ->
     Value = F(),
     counts_incr(Value),
     true = Value =< 10,
     run(N - 1, F).
+
+run_s(0, _, _) ->
+    ok;
+run_s(N, F, S0) ->
+    {Value, S1} = F(S0),
+    counts_incr(Value),
+    true = Value =< 10,
+    run_s(N - 1, F, S1).
 
 test(N) ->
     <<I1:32/unsigned-integer,
@@ -233,6 +241,9 @@ test(N) ->
     counts_init(),
     {Test24, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_cache_uniform/0]),
     counts_print("quickrand_cache:uniform/1"),
+    counts_init(),
+    {Test25, _} = timer:tc(?MODULE, run_s, [N, fun test_quickrand_cache_uniform/1, quickrand_cache:new()]),
+    counts_print("quickrand_cache:uniform/2"),
 
     %% results
     [
@@ -259,6 +270,7 @@ test(N) ->
         #result{name = "19_os:perf_counter/1",       get =  Test21},
         #result{name = "os_time:perf_counter/0",     get =  Test22},
         #result{name = "18_os:system_time/1",        get =  Test23},
-        #result{name = "quickrand_cache:uniform/1",  get =  Test24}%,
+        #result{name = "quickrand_cache:uniform/1",  get =  Test24},
+        #result{name = "quickrand_cache:uniform/2",  get =  Test25}%,
     ].
 

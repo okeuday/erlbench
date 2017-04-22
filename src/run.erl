@@ -30,6 +30,7 @@
 %-define(TESTS, [list_match]).
 
 %-define(COUNTS, [1000, 10000, 100000]).
+%-define(TESTS, [string_key]).
 %-define(TESTS, [string_key, integer_key, list_traversal]).
 %-define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,
 %                 8000, 16000, 32000, 64000]).
