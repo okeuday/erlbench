@@ -1,7 +1,7 @@
 #-*-Mode:make;coding:utf-8;tab-width:4;c-basic-offset:4-*-
 # ex: set ft=make fenc=utf-8 sts=4 ts=4 sw=4 noet nomod:
 ERL_OPTS=+C multi_time_warp
-COMPILE_FLAGS=-DERLANG_OTP_VERSION_18
+COMPILE_FLAGS=-DERLANG_OTP_VERSION_20
 COMPILE_FLAGS_HIPE=\
 icode_range,icode_ssa_const_prop,\
 icode_ssa_copy_prop,icode_type,icode_inline_bifs,\

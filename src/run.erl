@@ -40,10 +40,6 @@
 %-define(TESTS, [trie_prefix]).
 
 test() ->
-    <<Random1:16/unsigned-integer,
-      Random2:16/unsigned-integer,
-      Random3:16/unsigned-integer>> = crypto:rand_bytes(6),
-    random:seed(Random1, Random2, Random3),
     lists:foreach(fun(Test) ->
         io:format("TEST ~p~n", [Test]),
         lists:foreach(fun(Count) ->

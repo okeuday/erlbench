@@ -22,7 +22,7 @@ test_18_unique() ->
     I = erlang:unique_integer([positive]),
     (I rem 10) + 1.
 
-test_18_rand() ->
+test_20_rand() ->
     rand:uniform(10).
 
 %test_now() ->
@@ -30,11 +30,11 @@ test_18_rand() ->
 %    {_, _, I} = erlang:now(),
 %    (I rem 10) + 1.
 
-test_crypto() ->
-    crypto:rand_uniform(1, 11).
+%test_crypto() ->
+%    crypto:rand_uniform(1, 11).
 
-test_random() ->
-    random:uniform(10).
+%test_random() ->
+%    random:uniform(10).
 
 test_random_wh82() ->
     random_wh82:uniform(10).
@@ -157,13 +157,13 @@ test(N) ->
     %counts_init(),
     %{Test1, _} = timer:tc(?MODULE, run, [N, fun test_now/0]),
     %counts_print("erlang:now/0"),
-    counts_init(),
-    {Test2, _} = timer:tc(?MODULE, run, [N, fun test_crypto/0]),
-    counts_print("crypto:rand_uniform/2"),
-    random:seed(IP1, IP2, IP3),
-    counts_init(),
-    {Test3, _} = timer:tc(?MODULE, run, [N, fun test_random/0]),
-    counts_print("random:uniform/1"),
+    %counts_init(),
+    %{Test2, _} = timer:tc(?MODULE, run, [N, fun test_crypto/0]),
+    %counts_print("crypto:rand_uniform/2"),
+    %random:seed(IP1, IP2, IP3),
+    %counts_init(),
+    %{Test3, _} = timer:tc(?MODULE, run, [N, fun test_random/0]),
+    %counts_print("random:uniform/1"),
     % not uniform
     %counts_init(),
     %{Test4, _} = timer:tc(?MODULE, run, [N, fun test_reductions1/0]),
@@ -204,18 +204,21 @@ test(N) ->
     %counts_init(),
     %{Test14, _} = timer:tc(?MODULE, run, [N, fun test_18_unique/0]),
     %counts_print("18_unique"),
-    _ = rand:seed(exsplus, {IP1, IP2, IP3}),
+    %_ = rand:seed(exsplus, {IP1, IP2, IP3}),
+    _ = rand:seed(exsp, {IP1, IP2, IP3}),
     counts_init(),
-    {Test15, _} = timer:tc(?MODULE, run, [N, fun test_18_rand/0]),
-    counts_print("18_rand_exsplus"),
-    _ = rand:seed(exs64, {IP1, IP2, IP3}),
+    {Test15, _} = timer:tc(?MODULE, run, [N, fun test_20_rand/0]),
+    counts_print("20_rand_exsp"),
+    %_ = rand:seed(exs64, {IP1, IP2, IP3}),
+    _ = rand:seed(exrop, {IP1, IP2, IP3}),
     counts_init(),
-    {Test16, _} = timer:tc(?MODULE, run, [N, fun test_18_rand/0]),
-    counts_print("18_rand_exs64"),
-    _ = rand:seed(exs1024, {IP1, IP2, IP3}),
+    {Test16, _} = timer:tc(?MODULE, run, [N, fun test_20_rand/0]),
+    counts_print("20_rand_exrop"),
+    %_ = rand:seed(exs1024, {IP1, IP2, IP3}),
+    _ = rand:seed(exs1024s, {IP1, IP2, IP3}),
     counts_init(),
-    {Test17, _} = timer:tc(?MODULE, run, [N, fun test_18_rand/0]),
-    counts_print("18_rand_exs1024"),
+    {Test17, _} = timer:tc(?MODULE, run, [N, fun test_20_rand/0]),
+    counts_print("20_rand_exs1024s"),
     random_wh82:seed(IP1, IP2, IP3),
     counts_init(),
     {Test18, _} = timer:tc(?MODULE, run, [N, fun test_random_wh82/0]),
@@ -248,8 +251,8 @@ test(N) ->
     %% results
     [
         %#result{name = "erlang:now/0",               get =  Test1},
-        #result{name = "crypto:rand_uniform/2",      get =  Test2},
-        #result{name = "random:uniform/1",           get =  Test3},
+        %#result{name = "crypto:rand_uniform/2",      get =  Test2},
+        %#result{name = "random:uniform/1",           get =  Test3},
         %#result{name = "erlang:process_info(,red)",  get =  Test4},
         %#result{name = "erlang:statistics(red)",     get =  Test5},
         %#result{name = "erlang:statistics(io)",      get =  Test6},
@@ -261,9 +264,9 @@ test(N) ->
         #result{name = "18_bxor_abs",                get =  Test12},
         #result{name = "18_monotonic",               get =  Test13},
         %#result{name = "18_unique",                  get =  Test14}%,
-        #result{name = "18_rand_exsplus",            get =  Test15},
-        #result{name = "18_rand_exs64",              get =  Test16},
-        #result{name = "18_rand_exs1024",            get =  Test17},
+        #result{name = "20_rand_exsp",               get =  Test15},
+        #result{name = "20_rand_exrop",              get =  Test16},
+        #result{name = "20_rand_exs1024s",           get =  Test17},
         #result{name = "random_wh82:uniform/1",      get =  Test18},
         #result{name = "random_wh82_int:uniform/1",  get =  Test19},
         #result{name = "18_erlang:system_time/1",    get =  Test20},
