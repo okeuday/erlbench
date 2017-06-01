@@ -104,7 +104,6 @@ BUILT=\
     ebin/jsx_verify.beam \
     ebin/list_match.beam \
     ebin/list_traversal.beam \
-    ebin/lqueue.beam \
     ebin/math_speed.beam \
     ebin/mochijson2.beam \
     ebin/mochinum.beam \

@@ -1,5 +1,5 @@
 %-*-Mode:erlang;coding:utf-8;tab-width:4;c-basic-offset:4;indent-tabs-mode:()-*-
-% ex: set ft=erlang fenc=utf-8 sts=4 ts=4 sw=4 et:
+% ex: set ft=erlang fenc=utf-8 sts=4 ts=4 sw=4 et nomod:
 %%%
 %%%------------------------------------------------------------------------
 %%% @doc
@@ -18,45 +18,31 @@
 %%% the traversals preserve alphabetical ordering.
 %%% @end
 %%%
-%%% BSD LICENSE
-%%% 
-%%% Copyright (c) 2010-2013, Michael Truog <mjtruog at gmail dot com>
-%%% All rights reserved.
+%%% MIT License
 %%%
-%%% Redistribution and use in source and binary forms, with or without
-%%% modification, are permitted provided that the following conditions are met:
+%%% Copyright (c) 2010-2017 Michael Truog <mjtruog at gmail dot com>
 %%%
-%%%     * Redistributions of source code must retain the above copyright
-%%%       notice, this list of conditions and the following disclaimer.
-%%%     * Redistributions in binary form must reproduce the above copyright
-%%%       notice, this list of conditions and the following disclaimer in
-%%%       the documentation and/or other materials provided with the
-%%%       distribution.
-%%%     * All advertising materials mentioning features or use of this
-%%%       software must display the following acknowledgment:
-%%%         This product includes software developed by Michael Truog
-%%%     * The name of the author may not be used to endorse or promote
-%%%       products derived from this software without specific prior
-%%%       written permission
+%%% Permission is hereby granted, free of charge, to any person obtaining a
+%%% copy of this software and associated documentation files (the "Software"),
+%%% to deal in the Software without restriction, including without limitation
+%%% the rights to use, copy, modify, merge, publish, distribute, sublicense,
+%%% and/or sell copies of the Software, and to permit persons to whom the
+%%% Software is furnished to do so, subject to the following conditions:
 %%%
-%%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-%%% CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-%%% INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-%%% OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-%%% DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-%%% CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-%%% SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-%%% BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-%%% SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-%%% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-%%% WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-%%% NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-%%% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-%%% DAMAGE.
+%%% The above copyright notice and this permission notice shall be included in
+%%% all copies or substantial portions of the Software.
+%%%
+%%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+%%% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+%%% FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+%%% DEALINGS IN THE SOFTWARE.
 %%%
 %%% @author Michael Truog <mjtruog [at] gmail (dot) com>
-%%% @copyright 2010-2013 Michael Truog
-%%% @version 1.4.0 {@date} {@time}
+%%% @copyright 2010-2017 Michael Truog
+%%% @version 1.7.1 {@date} {@time}
 %%%------------------------------------------------------------------------
 
 -module(trie).
@@ -99,10 +85,12 @@
          new/1,
          pattern_parse/2,
          pattern_parse/3,
+         pattern_suffix/2,
          prefix/3,
          size/1,
          store/2,
          store/3,
+         take/2,
          to_list/1,
          to_list_similar/2,
          update/3,
@@ -170,8 +158,8 @@ find_match_node([H | T] = Match, Key, {I0, I1, Data} = Node)
                         true ->
                             case wildcard_match_lists(ChildNode, T) of
                                 true ->
-                                    {ok, lists:reverse([H | Key]) ++
-                                     ChildNode, Value};
+                                    {ok, lists:reverse([H | Key],
+                                                       ChildNode), Value};
                                 false ->
                                     error
                             end
@@ -197,7 +185,7 @@ find_match_element_1([_ | T] = Match, Key, {I0, I1, Data})
             Suffix = [$* | ChildNode],
             case wildcard_match_lists(Suffix, Match) of
                 true ->
-                    {ok, lists:reverse(Key) ++ Suffix, Value};
+                    {ok, lists:reverse(Key, Suffix), Value};
                 false ->
                     error
             end
@@ -234,12 +222,11 @@ find_match_element_N([H | T], Key, WildValue, {I0, _, Data} = Node) ->
         true ->
             case wildcard_match_lists(ChildNode, T) of
                 true ->
-                    {ok, lists:reverse([H | Key]) ++ ChildNode, Value};
+                    {ok, lists:reverse([H | Key], ChildNode), Value};
                 false ->
                     find_match_element_N(T, Key, WildValue, Node)
             end
     end.
-
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -364,7 +351,7 @@ fold_match_node_1([H | T], F, A, Prefix, {I0, _, Data})
         Value =/= error ->
             case wildcard_match_lists(T, ChildNode) of
                 true ->
-                    F(lists:reverse(NewPrefix) ++ ChildNode, Value, A);
+                    F(lists:reverse(NewPrefix, ChildNode), Value, A);
                 false ->
                     A
             end;
@@ -404,10 +391,10 @@ fold_match_element_1([$* | T] = Match, F, A, I, N, Offset, Prefix, Mid, Data) ->
         _ ->
             NewA = if
                 Value =/= error ->
-                    Suffix = lists:reverse([(Offset + I) | Mid]) ++ Node,
+                    Suffix = lists:reverse([(Offset + I) | Mid], Node),
                     case wildcard_match_lists(Match, Suffix) of
                         true ->
-                            F(lists:reverse(Prefix) ++ Suffix, Value, A);
+                            F(lists:reverse(Prefix, Suffix), Value, A);
                         false ->
                             A
                     end;
@@ -451,7 +438,7 @@ fold_match_element_N([$*] = Match, F, A, I, N, Offset, Prefix, Mid, Data) ->
         _ ->
             NewA = if
                 Value =/= error ->
-                    F(lists:reverse([(Offset + I) | Mid] ++ Prefix) ++ Node,
+                    F(lists:reverse([(Offset + I) | Mid] ++ Prefix, Node),
                       Value, A);
                 true ->
                     A
@@ -473,7 +460,7 @@ fold_match_element_N([$* | T] = Match, F, A, I, N, Offset, Prefix, Mid, Data) ->
                         Value =/= error ->
                             case wildcard_match_lists(NewMatch, Node) of
                                 true ->
-                                    F(lists:reverse(NewPrefix) ++ Node,
+                                    F(lists:reverse(NewPrefix, Node),
                                       Value, A);
                                 false ->
                                     A
@@ -503,11 +490,10 @@ fold_match_element_N([$* | T] = Match, F, A, I, N, Offset, Prefix, Mid, Data) ->
                 _ ->
                     NewA = if
                         Value =/= error ->
-                            Suffix = lists:reverse([(Offset + I) | Mid]) ++
-                                Node,
+                            Suffix = lists:reverse([(Offset + I) | Mid], Node),
                             case wildcard_match_lists(Match, Suffix) of
                                 true ->
-                                    F(lists:reverse(Prefix) ++ Suffix,
+                                    F(lists:reverse(Prefix, Suffix),
                                       Value, A);
                                 false ->
                                     A
@@ -566,10 +552,10 @@ is_prefix([H], {I0, _, Data})
     case erlang:element(H - I0 + 1, Data) of
         {{_, _, _}, _} ->
             true;
-        {[], Value} ->
-            (Value =/= error);
-        _ ->
-            false
+        {_, error} ->
+            false;
+        {_, _} ->
+            true
     end;
 
 is_prefix([H | T], {I0, _, Data})
@@ -609,7 +595,7 @@ is_prefixed([H], {I0, _, Data})
             true;
         {[], _} ->
             true;
-        _ ->
+        {[_ | _], _} ->
             false
     end;
 
@@ -624,8 +610,8 @@ is_prefixed([H | T], {I0, _, Data})
             false;
         {T, _} ->
             true;
-        _ ->
-            false
+        {L, _} ->
+            lists:prefix(L, T)
     end;
 
 is_prefixed(_, []) ->
@@ -651,15 +637,13 @@ is_prefixed_match([H | _], _, _, {I0, I1, _})
 is_prefixed_match([H], Matched, Exclude, {I0, _, Data})
     when is_integer(H) ->
     case erlang:element(H - I0 + 1, Data) of
-        {{_, _, _}, error} ->
+        {_, error} ->
             false;
         {{_, _, _}, _} ->
             Matched orelse (not lists:member(H, Exclude));
-        {_, error} ->
-            false;
         {[], _} ->
             Matched orelse (not lists:member(H, Exclude));
-        _ ->
+        {[_ | _], _} ->
             false
     end;
 
@@ -679,7 +663,7 @@ is_prefixed_match([H | T], Matched, Exclude, {I0, _, Data})
         {_, error} ->
             false;
         {L, _} ->
-            is_prefixed_match_check(T, L,
+            is_prefixed_match_check(L, T,
                                     Matched orelse
                                     (not lists:member(H, Exclude)),
                                     Exclude)
@@ -688,7 +672,7 @@ is_prefixed_match([H | T], Matched, Exclude, {I0, _, Data})
 is_prefixed_match(_, _, _, []) ->
     false.
 
-is_prefixed_match_check([], [], Matched, _) ->
+is_prefixed_match_check([], _, Matched, _) ->
     Matched;
 
 is_prefixed_match_check([H | T1], [H | T2], Matched, Exclude) ->
@@ -837,35 +821,37 @@ pattern_parse(Pattern, L) ->
 %% ===Parse a string based on the supplied wildcard pattern.===
 %% "*" is the wildcard character (equivalent to the ".+" regex) and
 %% "**" is forbidden.
-%% This function assumes there is a direct match with the characters following
-%% the wildcard characters, so "*/" will parse "//" but not "///".  That means
-%% it currently depends on the pattern delimiters being unique
-%% (not part of what is consumed by the wildcard).  So, it is possible to have
-%% a find_match/2 argument that doesn't parse with the pattern it matches
-%% (since it is matching the most exact pattern while not making any
-%%  decisions based on the delimiters following wildcard characters, i.e.,
-%%  it backtracks through the string to match when the current path through
-%%  the pattern doesn't match).  This function's current implementation
-%% is simple to keep the pattern parse efficient, without the need to
-%% consume extra memory.
 %% @end
 %%-------------------------------------------------------------------------
 
 -spec pattern_parse(Pattern :: string(),
                     L :: string(),
-                    Option :: default | with_suffix) ->
-    list(string()) | {list(string()), string()} | 'error'.
+                    Option :: default | with_suffix | expanded) ->
+    list(string()) |                       % default
+    {list(string()), string()} |           % with_suffix
+    list(string() | {exact, string()}) |   % expanded
+    'error'.
 
 pattern_parse(Pattern, L, Option)
     when (Option =:= default) orelse
-         (Option =:= with_suffix) ->
+         (Option =:= with_suffix) orelse
+         (Option =:= expanded) ->
     pattern_parse(Pattern, L, [], [], Option).
 
 pattern_parse_result(default, Parameters, _) ->
-    Parameters;
+    lists:reverse(Parameters);
 
 pattern_parse_result(with_suffix, Parameters, Suffix) ->
-    {Parameters, lists:reverse(Suffix)}.
+    {lists:reverse(Parameters), lists:reverse(Suffix)};
+
+pattern_parse_result(expanded, Parameters, Suffix) ->
+    NewParameters = if
+        Suffix /= [] ->
+            [{exact, lists:reverse(Suffix)} | Parameters];
+        true ->
+            Parameters
+    end,
+    lists:reverse(NewParameters).
 
 pattern_parse_element(_, [], _) ->
     error;
@@ -879,8 +865,24 @@ pattern_parse_element(_, [$* | _], _) ->
 pattern_parse_element(C, [H | T], L) ->
     pattern_parse_element(C, T, [H | L]).
 
+pattern_parse_pattern(Pattern, C, L, Segment, Parsed, Option) ->
+    case pattern_parse_element(C, L, Segment) of
+        {ok, NewL, NewSegment} ->
+            case pattern_parse(Pattern, NewL,
+                               [NewSegment | Parsed], [C], Option) of
+                error ->
+                    pattern_parse_pattern(Pattern, C, NewL,
+                                          [C | lists:reverse(NewSegment)],
+                                          Parsed, Option);
+                Success ->
+                    Success
+            end;
+        error ->
+            error
+    end.
+
 pattern_parse([], [], Parsed, Suffix, Option) ->
-    pattern_parse_result(Option, lists:reverse(Parsed), Suffix);
+    pattern_parse_result(Option, Parsed, Suffix);
 
 pattern_parse([], [_ | _], _, _, _) ->
     error;
@@ -888,25 +890,93 @@ pattern_parse([], [_ | _], _, _, _) ->
 pattern_parse([_ | _], [$* | _], _, _, _) ->
     erlang:exit(badarg);
 
-pattern_parse([$*], [_ | _] = L, Parsed, _, Option) ->
-    pattern_parse_result(Option, lists:reverse([L | Parsed]), []);
+pattern_parse([$*], [_ | _] = L, Parsed, Suffix, Option) ->
+    NewParsed = if
+        Option =:= expanded, Suffix /= [] ->
+            [{exact, lists:reverse(Suffix)} | Parsed];
+        true ->
+            Parsed
+    end,
+    pattern_parse_result(Option, [L | NewParsed], []);
 
 pattern_parse([$*, $* | _], [_ | _], _, _, _) ->
     erlang:exit(badarg);
 
-pattern_parse([$*, C | Pattern], [H | T], Parsed, _, Option) ->
-    case pattern_parse_element(C, T, [H]) of
-        {ok, NewL, Segment} ->
-            pattern_parse(Pattern, NewL, [Segment | Parsed], [C], Option);
-        error ->
-            error
-    end;
+pattern_parse([$*, C | Pattern], [H | T], Parsed, Suffix, Option) ->
+    NewParsed = if
+        Option =:= expanded, Suffix /= [] ->
+            [{exact, lists:reverse(Suffix)} | Parsed];
+        true ->
+            Parsed
+    end,
+    pattern_parse_pattern(Pattern, C, T, [H], NewParsed, Option);
 
 pattern_parse([C | Pattern], [C | L], Parsed, Suffix, Option) ->
     pattern_parse(Pattern, L, Parsed, [C | Suffix], Option);
 
 pattern_parse(_, _, _, _, _) ->
     error.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Parse a string based on the supplied wildcard pattern to return only the suffix after the pattern.===
+%% "*" is the wildcard character (equivalent to the ".+" regex) and
+%% "**" is forbidden.
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec pattern_suffix(Pattern :: string(),
+                     L :: string()) ->
+    string() | 'error'.
+
+pattern_suffix([], []) ->
+    [];
+
+pattern_suffix([], [_ | _] = L) ->
+    L;
+
+pattern_suffix([_ | _], [$* | _]) ->
+    erlang:exit(badarg);
+
+pattern_suffix([$*], [_ | _]) ->
+    [];
+
+pattern_suffix([$*, $* | _], [_ | _]) ->
+    erlang:exit(badarg);
+
+pattern_suffix([$*, C | Pattern], [_ | T]) ->
+    pattern_suffix_pattern(Pattern, C, T);
+
+pattern_suffix([C | Pattern], [C | L]) ->
+    pattern_suffix(Pattern, L);
+
+pattern_suffix(_, _) ->
+    error.
+
+pattern_suffix_element(_, []) ->
+    error;
+
+pattern_suffix_element(C, [C | T]) ->
+    {ok, T};
+
+pattern_suffix_element(_, [$* | _]) ->
+    erlang:exit(badarg);
+
+pattern_suffix_element(C, [_ | T]) ->
+    pattern_suffix_element(C, T).
+
+pattern_suffix_pattern(Pattern, C, L) ->
+    case pattern_suffix_element(C, L) of
+        {ok, NewL} ->
+            case pattern_suffix(Pattern, NewL) of
+                error ->
+                    pattern_suffix_pattern(Pattern, C, NewL);
+                Success ->
+                    Success
+            end;
+        error ->
+            error
+    end.
 
 %%-------------------------------------------------------------------------
 %% @private
@@ -1087,6 +1157,9 @@ test() ->
     2.5 = trie:fetch("aaaa", RootNode5),
     {'EXIT', {if_clause, _}} = (catch trie:fetch("aaaa", RootNode4)),
     RootNode4 = trie:erase("a", trie:erase("aaaa", RootNode5)),
+    {2.5, RootNodePre4} = trie:take("aaaa", RootNode5),
+    {0, RootNode4} = trie:take("a", RootNodePre4),
+    error = trie:take("a", RootNode4),
     true = trie:is_key("aaaa", RootNode5),
     false = trie:is_key("aaaa", RootNode4),
     ["aa",
@@ -1160,8 +1233,31 @@ test() ->
     ["bb", "b"] = trie:pattern_parse("aa*a*", "aabbab"),
     ["bb", "bb"] = trie:pattern_parse("aa*a*", "aabbabb"),
     error = trie:pattern_parse("aa*a*", "aaabb"),
+    ["file.name"] = trie:pattern_parse("*.txt", "file.name.txt"),
+    ["//"] = trie:pattern_parse("*/", "///"),
+    "/get" = trie:pattern_suffix("*.txt", "file.name.txt/get"),
+    "/get" = trie:pattern_suffix("*/", "///get"),
+    {ok, "/accounting/balances/fred",
+     empty} = trie:find_match("/accounting/balances/fred",
+                              trie:new(["/accounting/balances/*",
+                                        "/accounting/balances/fred"])),
+    {ok, "/permissions/fred/accounts/*",
+     empty} = trie:find_match("/permissions/fred/accounts/add",
+                              trie:new(["/permissions/*/accounts/*",
+                                        "/permissions/fred/accounts/*",
+                                        "/permissions/*/accounts/add",
+                                        "/permissions/fred/accounts/remove"])),
+    {ok,"*//get",empty} = trie:find_match("///get", trie:new(["*//get"])),
+    {ok,"*/",empty} = trie:find_match("///", trie:new(["*/"])),
     [] = trie:pattern_parse("aaabb", "aaabb"),
     {[], "aaabb"} = trie:pattern_parse("aaabb", "aaabb", with_suffix),
+    [{exact, "a"},
+     "ddi",
+     {exact, "t"},
+     "io",
+     {exact, "n"}] = trie:pattern_parse("a*t*n", "addition", expanded),
+    ["w",{exact,"atch"}] = trie:pattern_parse("*atch", "watch", expanded),
+    [{exact,"is"},"t"] = trie:pattern_parse("is*", "ist", expanded),
     false = trie:is_pattern("abcdef"),
     true = trie:is_pattern("abc*d*ef"),
     {'EXIT',badarg} = (catch trie:is_pattern("abc**ef")),
@@ -1175,6 +1271,21 @@ test() ->
     ["00"] = trie:fetch_keys_similar("0", RootNode7),
     RootNode9 = trie:new([{"abc", 123}]),
     {97,97,{{"bc",456}}} = trie:store("abc", 456, RootNode9),
+    RootNode10 = trie:store("abc", value, trie:new()),
+    RootNode11 = trie:store("abcd", value, RootNode10),
+    true = trie:is_prefixed("abcdefghijk", RootNode10),
+    true = trie:is_prefixed("abcdefghijk", RootNode11),
+    true = trie:is_prefix("a", RootNode10),
+    true = trie:is_prefix("a", RootNode11),
+    true = trie:is_prefix("ab", RootNode10),
+    true = trie:is_prefix("ab", RootNode11),
+    true = trie:is_prefixed("abcdefghijk", "", RootNode10),
+    true = trie:is_prefixed("abcdefghijk", "", RootNode11),
+    false = trie:is_prefixed("abcdefghijk", "abc", RootNode10),
+    true = trie:is_prefixed("abcdefghijk", "abc", RootNode11),
+    true = trie:is_prefixed("abcdefghijk", "ac", RootNode10),
+    true = trie:is_prefixed("abcdefghijk", "bc", RootNode10),
+    true = trie:is_prefixed("abcdefghijk", "ab", RootNode10),
     ok.
 
 %%%------------------------------------------------------------------------
@@ -1216,6 +1327,19 @@ wildcard_match_lists_valid([$* | _], _) ->
 wildcard_match_lists_valid([_ | L], Result) ->
     wildcard_match_lists_valid(L, Result).
 
+wildcard_match_lists_pattern(Pattern, C, L) ->
+    case wildcard_match_lists_element(C, L) of
+        {ok, NewL} ->
+            case wildcard_match_lists(Pattern, NewL) of
+                true ->
+                    true;
+                false ->
+                    wildcard_match_lists_pattern(Pattern, C, NewL)
+            end;
+        error ->
+            wildcard_match_lists_valid(L, false)
+    end.
+
 wildcard_match_lists([], []) ->
     true;
 
@@ -1228,17 +1352,12 @@ wildcard_match_lists([_ | _], [$* | _]) ->
 wildcard_match_lists([$*], [_ | L]) ->
     wildcard_match_lists_valid(L, true);
 
-wildcard_match_lists([$*, C | Match], [_ | L]) ->
+wildcard_match_lists([$*, C | Pattern], [_ | L]) ->
     true = C =/= $*,
-    case wildcard_match_lists_element(C, L) of
-        {ok, NewL} ->
-            wildcard_match_lists(Match, NewL);
-        error ->
-            wildcard_match_lists_valid(L, false)
-    end;
+    wildcard_match_lists_pattern(Pattern, C, L);
 
-wildcard_match_lists([C | Match], [C | L]) ->
-    wildcard_match_lists(Match, L);
+wildcard_match_lists([C | Pattern], [C | L]) ->
+    wildcard_match_lists(Pattern, L);
 
 wildcard_match_lists(_, L) ->
     wildcard_match_lists_valid(L, false).

@@ -1,5 +1,5 @@
 %-*-Mode:erlang;coding:utf-8;tab-width:4;c-basic-offset:4;indent-tabs-mode:()-*-
-% ex: set ft=erlang fenc=utf-8 sts=4 ts=4 sw=4 et:
+% ex: set ft=erlang fenc=utf-8 sts=4 ts=4 sw=4 et nomod:
 %%%
 %%%------------------------------------------------------------------------
 %%% @doc
@@ -11,60 +11,49 @@
 %%% (https://github.com/basho/riak_core/blob/master/src/priority_queue.erl).
 %%% @end
 %%%
-%%% BSD LICENSE
-%%% 
-%%% Copyright (c) 2011-2014, Michael Truog <mjtruog at gmail dot com>
-%%% All rights reserved.
-%%% 
-%%% Redistribution and use in source and binary forms, with or without
-%%% modification, are permitted provided that the following conditions are met:
-%%% 
-%%%     * Redistributions of source code must retain the above copyright
-%%%       notice, this list of conditions and the following disclaimer.
-%%%     * Redistributions in binary form must reproduce the above copyright
-%%%       notice, this list of conditions and the following disclaimer in
-%%%       the documentation and/or other materials provided with the
-%%%       distribution.
-%%%     * All advertising materials mentioning features or use of this
-%%%       software must display the following acknowledgment:
-%%%         This product includes software developed by Michael Truog
-%%%     * The name of the author may not be used to endorse or promote
-%%%       products derived from this software without specific prior
-%%%       written permission
-%%% 
-%%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-%%% CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-%%% INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-%%% OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-%%% DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-%%% CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-%%% SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-%%% BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-%%% SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-%%% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-%%% WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-%%% NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-%%% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-%%% DAMAGE.
+%%% MIT License
 %%%
-%%% queue_remove_unique/2 is based on queue:filter/2 which is under the EPL:
+%%% Copyright (c) 2011-2017 Michael Truog <mjtruog at gmail dot com>
 %%%
-%%% Copyright Ericsson AB 1996-2013. All Rights Reserved.
+%%% Permission is hereby granted, free of charge, to any person obtaining a
+%%% copy of this software and associated documentation files (the "Software"),
+%%% to deal in the Software without restriction, including without limitation
+%%% the rights to use, copy, modify, merge, publish, distribute, sublicense,
+%%% and/or sell copies of the Software, and to permit persons to whom the
+%%% Software is furnished to do so, subject to the following conditions:
+%%%
+%%% The above copyright notice and this permission notice shall be included in
+%%% all copies or substantial portions of the Software.
+%%%
+%%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+%%% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+%%% FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+%%% DEALINGS IN THE SOFTWARE.
+%%%
+%%%
+%%% queue_remove_unique/2 is based on queue:filter/2
+%%% which is under the Apache License 2.0:
+%%%
+%%% Copyright Ericsson AB 1996-2016. All Rights Reserved.
 %%% 
-%%% The contents of this file are subject to the Erlang Public License,
-%%% Version 1.1, (the "License"); you may not use this file except in
-%%% compliance with the License. You should have received a copy of the
-%%% Erlang Public License along with this software. If not, it can be
-%%% retrieved online at http://www.erlang.org/.
-%%% 
-%%% Software distributed under the License is distributed on an "AS IS"
-%%% basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
-%%% the License for the specific language governing rights and limitations
-%%% under the License.
+%%% Licensed under the Apache License, Version 2.0 (the "License");
+%%% you may not use this file except in compliance with the License.
+%%% You may obtain a copy of the License at
+%%%
+%%%     http://www.apache.org/licenses/LICENSE-2.0
+%%%
+%%% Unless required by applicable law or agreed to in writing, software
+%%% distributed under the License is distributed on an "AS IS" BASIS,
+%%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%%% See the License for the specific language governing permissions and
+%%% limitations under the License.
 %%%
 %%% @author Michael Truog <mjtruog [at] gmail (dot) com>
-%%% @copyright 2011-2014 Michael Truog
-%%% @version 1.3.3 {@date} {@time}
+%%% @copyright 2011-2017 Michael Truog
+%%% @version 1.7.1 {@date} {@time}
 %%%------------------------------------------------------------------------
 
 -module(pqueue4).
@@ -92,10 +81,11 @@
 %%% External interface functions
 %%%------------------------------------------------------------------------
 
+-type priority() :: -128..128.
 -ifdef(ERLANG_OTP_VERSION_16).
--type pqueue4() ::
-    {integer() | 'empty', % current priority
-     integer(),           % total size
+-type pqueue4(_) ::
+    {priority() | 'empty', % current priority
+     non_neg_integer(),    % total size
      {queue(), queue(), queue(), queue(), queue(), queue(), queue(), queue(),
       queue(), queue(), queue(), queue(), queue(), queue(), queue(), queue()},
      {queue(), queue(), queue(), queue(), queue(), queue(), queue(), queue(),
@@ -130,75 +120,77 @@
      {queue(), queue(), queue(), queue(), queue(), queue(), queue(), queue(),
       queue(), queue(), queue(), queue(), queue(), queue(), queue(), queue()}}.
 -else.
--type pqueue4() ::
-    {integer() | 'empty', % current priority
-     integer(),           % total size
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     queue:queue(),
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()},
-     {queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue(),
-      queue:queue(), queue:queue(), queue:queue(), queue:queue()}}.
+-type pqueue4(T) ::
+    {priority() | 'empty', % current priority
+     non_neg_integer(),    % total size
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     queue:queue(T),
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)},
+     {queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T),
+      queue:queue(T), queue:queue(T), queue:queue(T), queue:queue(T)}}.
 -endif.
+-type pqueue4() :: pqueue4(any()).
+-export_type([pqueue4/0, pqueue4/1]).
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -471,7 +463,7 @@ to_list(L, {{value, Value}, Q}) ->
 %% @end
 %%-------------------------------------------------------------------------
 
--spec to_plist(pqueue4()) -> list({integer(), list()}).
+-spec to_plist(pqueue4()) -> list({priority(), list()}).
 
 to_plist(Q) ->
     to_plist([], [], undefined, pout(Q)).
@@ -11597,7 +11589,8 @@ proper_test_() ->
 %% @hidden
 %% remove a unique value from a queue based on a binary predicate,
 %% traversal order is undefined to keep it efficient (i.e., shouldn't matter)
-%% (based on the implementation of queue:filter/2 which is under the EPL)
+%% (based on the implementation of queue:filter/2
+%%  which is under the Apache License 2.0)
 %%-------------------------------------------------------------------------
 
 -spec queue_remove_unique(F :: fun((any()) -> boolean()),
@@ -11628,13 +11621,17 @@ queue_remove_unique(Fun, Q) ->
 % Call Fun in front to back order
 queue_remove_unique_f(_, [] = F) ->
     {false, F};
-queue_remove_unique_f(Fun, [X | F0]) ->
+queue_remove_unique_f(Fun, F) ->
+    queue_remove_unique_f(F, [], F, Fun).
+
+queue_remove_unique_f([], _, F, _) ->
+    {false, F};
+queue_remove_unique_f([X | F0], F1, F, Fun) ->
     case Fun(X) of
         true ->
-            {true, F0};
+            {true, lists:reverse(F1, F0)};
         false ->
-            {Found, F} = queue_remove_unique_f(Fun, F0),
-            {Found, [X | F]}
+            queue_remove_unique_f(F0, [X | F1], F, Fun)
     end.
 
 -compile({inline, [{queue_r2f,1},{queue_f2r,1}]}).

@@ -235,7 +235,6 @@ test() ->
 test(N) ->
     WordListLines = erlang:min(50000, N),
     Nfinal = N - N rem WordListLines,
-    true = N == Nfinal,
     Words = lists:foldl(fun (_, L) ->
         array:to_list(array:resize(WordListLines, read_wordlist())) ++ L
     end, [], lists:seq(WordListLines, Nfinal, WordListLines)),

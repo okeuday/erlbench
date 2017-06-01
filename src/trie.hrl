@@ -1,5 +1,5 @@
 %-*-Mode:erlang;coding:utf-8;tab-width:4;c-basic-offset:4;indent-tabs-mode:()-*-
-% ex: set ft=erlang fenc=utf-8 sts=4 ts=4 sw=4 et:
+% ex: set ft=erlang fenc=utf-8 sts=4 ts=4 sw=4 et nomod:
 %%%
 %%%------------------------------------------------------------------------
 %%%
@@ -7,41 +7,27 @@
 %%% (list of integers) trie implementation and the binary trie
 %%% implementation.
 %%%
-%%% BSD LICENSE
-%%% 
-%%% Copyright (c) 2010-2013, Michael Truog <mjtruog at gmail dot com>
-%%% All rights reserved.
-%%% 
-%%% Redistribution and use in source and binary forms, with or without
-%%% modification, are permitted provided that the following conditions are met:
-%%% 
-%%%     * Redistributions of source code must retain the above copyright
-%%%       notice, this list of conditions and the following disclaimer.
-%%%     * Redistributions in binary form must reproduce the above copyright
-%%%       notice, this list of conditions and the following disclaimer in
-%%%       the documentation and/or other materials provided with the
-%%%       distribution.
-%%%     * All advertising materials mentioning features or use of this
-%%%       software must display the following acknowledgment:
-%%%         This product includes software developed by Michael Truog
-%%%     * The name of the author may not be used to endorse or promote
-%%%       products derived from this software without specific prior
-%%%       written permission
-%%% 
-%%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-%%% CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-%%% INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-%%% OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-%%% DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-%%% CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-%%% SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-%%% BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-%%% SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-%%% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-%%% WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-%%% NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-%%% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-%%% DAMAGE.
+%%% MIT License
+%%%
+%%% Copyright (c) 2010-2017 Michael Truog <mjtruog at gmail dot com>
+%%%
+%%% Permission is hereby granted, free of charge, to any person obtaining a
+%%% copy of this software and associated documentation files (the "Software"),
+%%% to deal in the Software without restriction, including without limitation
+%%% the rights to use, copy, modify, merge, publish, distribute, sublicense,
+%%% and/or sell copies of the Software, and to permit persons to whom the
+%%% Software is furnished to do so, subject to the following conditions:
+%%%
+%%% The above copyright notice and this permission notice shall be included in
+%%% all copies or substantial portions of the Software.
+%%%
+%%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+%%% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+%%% FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+%%% DEALINGS IN THE SOFTWARE.
 %%%
 %%%------------------------------------------------------------------------
 
@@ -91,9 +77,12 @@
 %%% External interface functions
 %%%------------------------------------------------------------------------
 
--type trie_return() :: {integer(), integer(), tuple()}.
--type trie() :: ?TYPE_EMPTY | trie_return().
--export_type([trie/0]).
+-type nonempty_trie() :: {integer(), integer(), tuple()}.
+-type empty_trie() :: ?TYPE_EMPTY.
+-type trie() :: nonempty_trie() | empty_trie().
+-export_type([nonempty_trie/0,
+              empty_trie/0,
+              trie/0]).
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -103,7 +92,7 @@
 
 -spec append(Key :: ?TYPE_NAME(),
              Value :: any(),
-             Node :: trie()) -> trie_return().
+             Node :: trie()) -> nonempty_trie().
 
 append(Key, Value, Node) ->
     ValueList = [Value],
@@ -117,7 +106,7 @@ append(Key, Value, Node) ->
 
 -spec append_list(Key :: ?TYPE_NAME(),
                   ValueList :: list(),
-                  Node :: trie()) -> trie_return().
+                  Node :: trie()) -> nonempty_trie().
 
 append_list(Key, ValueList, Node) ->
     update(Key, fun(OldValue) -> OldValue ++ ValueList end, ValueList, Node).
@@ -188,7 +177,7 @@ erase_similar(Similar, Node) ->
 %%-------------------------------------------------------------------------
 
 -spec fetch(?TYPE_NAME(),
-            trie_return()) -> any().
+            nonempty_trie()) -> any().
 
 fetch(?TYPE_H0T0, {_, _, _} = Node) ->
     fetch_node(H, T, Node).
@@ -371,11 +360,11 @@ find_node(H, T, {I0, _, Data})
 -spec find_prefix(?TYPE_NAME(), trie()) -> {ok, any()} | 'prefix' | 'error'.
 
 find_prefix(?TYPE_H0_, {I0, I1, _})
-  when H < I0; H > I1 ->
+    when H < I0; H > I1 ->
     error;
 
 find_prefix(?TYPE_H0, {I0, _, Data})
-  when is_integer(H) ->
+    when is_integer(H) ->
     case erlang:element(H - I0 + 1, Data) of
         {{_, _, _}, error} ->
             prefix;
@@ -390,7 +379,7 @@ find_prefix(?TYPE_H0, {I0, _, Data})
     end;
 
 find_prefix(?TYPE_H0T0, {I0, _, Data})
-  when is_integer(H) ->
+    when is_integer(H) ->
     case erlang:element(H - I0 + 1, Data) of
         {{_, _, _} = Node, _} ->
             find_prefix(T, Node);
@@ -921,7 +910,7 @@ merge(F, Node1, Node2) when is_function(F, 3) ->
 %% @end
 %%-------------------------------------------------------------------------
 
--spec new() -> ?TYPE_EMPTY.
+-spec new() -> empty_trie().
 
 new() ->
     ?TYPE_EMPTY.
@@ -975,7 +964,7 @@ new_instance_state(?TYPE_H0T0, V1, V0)
 
 -spec prefix(Key :: ?TYPE_NAME(),
              Value :: any(),
-             Node :: trie()) -> trie_return().
+             Node :: trie()) -> nonempty_trie().
 
 prefix(Key, Value, Node) ->
     update(Key, fun(OldValue) -> [Value | OldValue] end, [Value], Node).
@@ -998,7 +987,7 @@ size(Node) ->
 %%-------------------------------------------------------------------------
 
 -spec store(Key :: ?TYPE_NAME(),
-            Node :: trie()) -> trie_return().
+            Node :: trie()) -> nonempty_trie().
 
 store(Key, Node) ->
     store(Key, empty, Node).
@@ -1011,7 +1000,7 @@ store(Key, Node) ->
 
 -spec store(Key :: ?TYPE_NAME(),
             NewValue :: any(),
-            Node :: trie()) -> trie_return().
+            Node :: trie()) -> nonempty_trie().
 
 store(?TYPE_H0T0, NewValue, ?TYPE_EMPTY) ->
     {H, H, {{T, NewValue}}};
@@ -1073,6 +1062,62 @@ store_node(H, ?TYPE_H1T1 = T, NewValue, {I0, I1, Data})
 
 %%-------------------------------------------------------------------------
 %% @doc
+%% ===Take a value from the trie.===
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec take(Key :: ?TYPE_NAME(),
+           Node :: trie()) ->
+    {any(), trie()} | 'error'.
+
+take(_, ?TYPE_EMPTY) ->
+    error;
+
+take(?TYPE_H0T0, Node) ->
+    take_node(H, T, Node).
+
+take_node(H, _, {I0, I1, _})
+    when is_integer(H), H < I0;
+         is_integer(H), H > I1 ->
+    error;
+
+take_node(H, T, {I0, I1, Data})
+    when is_integer(H) ->
+    I = H - I0 + 1,
+    {Node, Value} = erlang:element(I, Data),
+    if
+        T == Node ->
+            if
+                Value =:= error ->
+                    error;
+                true ->
+                    {Value,
+                     {I0, I1,
+                      erlang:setelement(I, Data, {?TYPE_EMPTY, error})}}
+            end;
+        T =:= ?TYPE_EMPTY ->
+            if
+                Value =:= error ->
+                    error;
+                true ->
+                    {Value,
+                     {I0, I1, erlang:setelement(I, Data, {Node, error})}}
+            end;
+        ?TYPE_CHECK(Node) ->
+            error;
+        is_tuple(Node) ->
+            ?TYPE_H1T1 = T,
+            case take_node(H1, T1, Node) of
+                error ->
+                    error;
+                {OldValue, NewNode} ->
+                    {OldValue,
+                     {I0, I1, erlang:setelement(I, Data, {NewNode, Value})}}
+            end
+    end.
+
+%%-------------------------------------------------------------------------
+%% @doc
 %% ===Convert all entries in a trie to a list.===
 %% The list is in alphabetical order.
 %% @end
@@ -1104,7 +1149,7 @@ to_list_similar(Similar, Node) ->
 
 -spec update(?TYPE_NAME(),
              F :: fun((any()) -> any()),
-             trie_return()) -> trie_return().
+             nonempty_trie()) -> nonempty_trie().
 
 update(?TYPE_H0T0, F, {_, _, _} = Node)
     when is_function(F, 1) ->
@@ -1142,7 +1187,7 @@ update_node(H, T, F, {I0, I1, Data})
 -spec update(Key :: ?TYPE_NAME(),
              F :: fun((any()) -> any()),
              Initial :: any(),
-             Node :: trie()) -> trie_return().
+             Node :: trie()) -> nonempty_trie().
 
 update(Key, _, Initial, ?TYPE_EMPTY = Node) ->
     store(Key, Initial, Node);
@@ -1218,7 +1263,7 @@ update_node(H, T, F, Initial, {I0, I1, Data})
 
 -spec update_counter(Key :: ?TYPE_NAME(),
                      Increment :: number(),
-                     Node :: trie()) -> trie_return().
+                     Node :: trie()) -> nonempty_trie().
 
 update_counter(Key, Increment, Node) ->
     update(Key, fun(I) -> I + Increment end, Increment, Node).

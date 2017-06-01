@@ -17,8 +17,8 @@
 %-define(COUNTS, [100]).
 %-define(TESTS, [json_encode, json_decode]).
 
--define(COUNTS, [10000]).
--define(TESTS, [pseudo_randomness]).
+%-define(COUNTS, [10000]).
+%-define(TESTS, [pseudo_randomness]).
 %-define(COUNTS, [10000000]).
 %-define(TESTS, [math_speed]).
 
@@ -32,9 +32,9 @@
 %-define(COUNTS, [1000, 10000, 100000]).
 %-define(TESTS, [string_key]).
 %-define(TESTS, [string_key, integer_key, list_traversal]).
-%-define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,
-%                 8000, 16000, 32000, 64000]).
-%-define(TESTS, [binary_key, string_key]).
+-define(COUNTS, [50, 100, 250, 500, 1000, 2000, 4000,
+                 8000, 16000, 32000, 64000]).
+-define(TESTS, [binary_key, string_key]).
 %-define(TESTS, [integer_key, binary_key, string_key]).
 %-define(TESTS, [string_key, integer_key]).
 %-define(TESTS, [trie_prefix]).

@@ -17,45 +17,31 @@
 %%% methods are provided as specified within the RFC.
 %%% @end
 %%%
-%%% BSD LICENSE
+%%% MIT License
 %%%
-%%% Copyright (c) 2011-2015, Michael Truog <mjtruog at gmail dot com>
-%%% All rights reserved.
+%%% Copyright (c) 2011-2017 Michael Truog <mjtruog at gmail dot com>
 %%%
-%%% Redistribution and use in source and binary forms, with or without
-%%% modification, are permitted provided that the following conditions are met:
+%%% Permission is hereby granted, free of charge, to any person obtaining a
+%%% copy of this software and associated documentation files (the "Software"),
+%%% to deal in the Software without restriction, including without limitation
+%%% the rights to use, copy, modify, merge, publish, distribute, sublicense,
+%%% and/or sell copies of the Software, and to permit persons to whom the
+%%% Software is furnished to do so, subject to the following conditions:
 %%%
-%%%     * Redistributions of source code must retain the above copyright
-%%%       notice, this list of conditions and the following disclaimer.
-%%%     * Redistributions in binary form must reproduce the above copyright
-%%%       notice, this list of conditions and the following disclaimer in
-%%%       the documentation and/or other materials provided with the
-%%%       distribution.
-%%%     * All advertising materials mentioning features or use of this
-%%%       software must display the following acknowledgment:
-%%%         This product includes software developed by Michael Truog
-%%%     * The name of the author may not be used to endorse or promote
-%%%       products derived from this software without specific prior
-%%%       written permission
+%%% The above copyright notice and this permission notice shall be included in
+%%% all copies or substantial portions of the Software.
 %%%
-%%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-%%% CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-%%% INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-%%% OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-%%% DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-%%% CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-%%% SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-%%% BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-%%% SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-%%% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-%%% WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-%%% NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-%%% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-%%% DAMAGE.
+%%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+%%% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+%%% FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+%%% DEALINGS IN THE SOFTWARE.
 %%%
 %%% @author Michael Truog <mjtruog [at] gmail (dot) com>
-%%% @copyright 2011-2015 Michael Truog
-%%% @version 1.4.1 {@date} {@time}
+%%% @copyright 2011-2017 Michael Truog
+%%% @version 1.7.1 {@date} {@time}
 %%%------------------------------------------------------------------------
 
 -module(uuid).
@@ -67,6 +53,8 @@
          get_v1/1,
          get_v1_time/0,
          get_v1_time/1,
+         get_v1_datetime/1,
+         get_v1_datetime/2,
          is_v1/1,
          get_v3/1,
          get_v3/2,
@@ -76,8 +64,6 @@
          get_v4/0,
          get_v4/1,
          get_v4_urandom/0,
-         get_v4_urandom_bigint/0,
-         get_v4_urandom_native/0,
          is_v4/1,
          get_v5/1,
          get_v5/2,
@@ -99,13 +85,14 @@
 -ifdef(ERLANG_OTP_VERSION_17).
 -define(TIMESTAMP_ERLANG_NOW, true).
 -else.
+-define(ERLANG_OTP_VERSION_18_FEATURES, true).
 -endif.
 -endif.
 
 -ifdef(TIMESTAMP_ERLANG_NOW).
--type timestamp_type_internal() :: 'os' | 'erlang_now' | 'warp'.
+-type timestamp_type_internal() :: 'erlang_now' | 'os'.
 -else.
--type timestamp_type_internal() :: 'os' | 'erlang_timestamp' | 'warp'.
+-type timestamp_type_internal() :: 'erlang_timestamp' | 'os' | 'warp'.
 -endif.
 
 -record(uuid_state,
@@ -118,7 +105,7 @@
 
 
 -type uuid() :: <<_:128>>.
--type timestamp_type() :: 'os' | 'erlang' | 'warp'.
+-type timestamp_type() :: 'erlang' | 'os' | 'warp'.
 -type state() :: #uuid_state{}.
 -export_type([uuid/0,
               timestamp_type/0,
@@ -227,7 +214,7 @@ new(Pid, Options)
     PidByte2 = PidID2 bxor PidSR3,
     PidByte3 = PidID3 bxor PidSR2,
     PidByte4 = PidID4 bxor PidSR1,
-    ClockSeq = random:uniform(16384) - 1,
+    ClockSeq = pseudo_random(16384) - 1,
     TimestampTypeInternal = if
         TimestampType =:= os ->
             os;
@@ -309,6 +296,9 @@ get_v1_time(erlang) ->
 get_v1_time(os) ->
     timestamp(os);
 
+get_v1_time(warp) ->
+    erlang:exit(badarg);
+
 get_v1_time(#uuid_state{timestamp_type = TimestampTypeInternal}) ->
     timestamp(TimestampTypeInternal);
 
@@ -347,6 +337,59 @@ get_v1_time(Value)
     <<Time:60>> = <<TimeHigh:12, TimeMid:16, TimeLow:32>>,
     ((Time - 16#01b21dd213814000) div 10). % microseconds since UNIX epoch
 -endif.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Get an ISO8601 datetime in UTC from a v1 UUID's time value.===
+%% http://www.w3.org/TR/NOTE-datetime
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec get_v1_datetime(Value :: timestamp_type() | state() | uuid() |
+                               erlang:timestamp()) ->
+    string().
+
+get_v1_datetime({_, _, MicroSeconds} = Timestamp) ->
+    {{DateYYYY, DateMM, DateDD},
+     {TimeHH, TimeMM, TimeSS}} = calendar:now_to_universal_time(Timestamp),
+    [DateYYYY0, DateYYYY1,
+     DateYYYY2, DateYYYY3] = int_to_dec_list(DateYYYY, 4),
+    [DateMM0, DateMM1] = int_to_dec_list(DateMM, 2),
+    [DateDD0, DateDD1] = int_to_dec_list(DateDD, 2),
+    [TimeHH0, TimeHH1] = int_to_dec_list(TimeHH, 2),
+    [TimeMM0, TimeMM1] = int_to_dec_list(TimeMM, 2),
+    [TimeSS0, TimeSS1] = int_to_dec_list(TimeSS, 2),
+    [MicroSeconds0, MicroSeconds1,
+     MicroSeconds2, MicroSeconds3,
+     MicroSeconds4, MicroSeconds5] = int_to_dec_list(MicroSeconds, 6),
+    [DateYYYY0, DateYYYY1, DateYYYY2, DateYYYY3, $-,
+     DateMM0, DateMM1, $-, DateDD0, DateDD1, $T,
+     TimeHH0, TimeHH1, $:, TimeMM0, TimeMM1, $:, TimeSS0, TimeSS1, $.,
+     MicroSeconds0, MicroSeconds1,
+     MicroSeconds2, MicroSeconds3,
+     MicroSeconds4, MicroSeconds5, $Z];
+get_v1_datetime(Value) ->
+    get_v1_datetime(Value, 0).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% ===Get an ISO8601 datetime in UTC from a v1 UUID's time value with an offset in microseconds.===
+%% http://www.w3.org/TR/NOTE-datetime
+%% @end
+%%-------------------------------------------------------------------------
+
+-spec get_v1_datetime(Value :: timestamp_type() | state() | uuid() |
+                               erlang:timestamp(),
+                      MicroSecondsOffset :: integer()) ->
+    string().
+
+get_v1_datetime(Value, MicroSecondsOffset)
+    when is_integer(MicroSecondsOffset) ->
+    MicroSecondsTotal = get_v1_time(Value) + MicroSecondsOffset,
+    MegaSeconds = MicroSecondsTotal div 1000000000000,
+    Seconds = (MicroSecondsTotal div 1000000) - MegaSeconds * 1000000,
+    MicroSeconds = MicroSecondsTotal rem 1000000,
+    get_v1_datetime({MegaSeconds, Seconds, MicroSeconds}).
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -487,15 +530,6 @@ is_v3(_) ->
 %% ===Get a v4 UUID (using crypto/openssl).===
 %% crypto:strong_rand_bytes/1 repeats in the same way as
 %% RAND_bytes within OpenSSL.
-%% crypto:rand_bytes/1 repeats in the same way as
-%% RAND_pseudo_bytes within OpenSSL.
-%% if OpenSSL is configured to use the MD PRNG (default) with SHA1
-%% (in openssl/crypto/rand/md_rand.c),
-%% the collisions are between 2^80 and 2^51
-%% ([http://eprint.iacr.org/2008/469.pdf]).  So, that means "weak" would
-%% repeat ideally every 1.21e24 and at worst every 2.25e15.
-%% if OpenSSL was compiled in FIPS mode, it uses ANSI X9.31 RNG
-%% and would have collisions based on 3DES.
 %% @end
 %%-------------------------------------------------------------------------
 
@@ -505,24 +539,33 @@ is_v3(_) ->
 get_v4() ->
     get_v4(strong).
 
--spec get_v4('strong' | 'weak') ->
-    uuid().
+-spec get_v4('strong' | 'cached' | quickrand_cache:state()) ->
+    uuid() | {uuid(), quickrand_cache:state()}.
 
 get_v4(strong) ->
-    <<Rand1:48, _:4, Rand2:12, _:2, Rand3:62>> = crypto:strong_rand_bytes(16),
+    <<Rand1:48, _:4, Rand2:12, _:2, Rand3:62>> =
+        crypto:strong_rand_bytes(16),
     <<Rand1:48,
       0:1, 1:1, 0:1, 0:1,  % version 4 bits
       Rand2:12,
       1:1, 0:1,            % RFC 4122 variant bits
       Rand3:62>>;
-
-get_v4(weak) ->
-    <<Rand1:48, _:4, Rand2:12, _:2, Rand3:62>> = crypto:rand_bytes(16),
+get_v4(cached) ->
+    <<Rand1:48, _:4, Rand2:12, _:2, Rand3:62>> =
+        quickrand_cache:rand_bytes(16),
     <<Rand1:48,
       0:1, 1:1, 0:1, 0:1,  % version 4 bits
       Rand2:12,
       1:1, 0:1,            % RFC 4122 variant bits
-      Rand3:62>>.
+      Rand3:62>>;
+get_v4(Cache) when element(1, Cache) =:= quickrand_cache ->
+    {<<Rand1:48, _:4, Rand2:12, _:2, Rand3:62>>, NewCache} =
+        quickrand_cache:rand_bytes(16, Cache),
+    {<<Rand1:48,
+       0:1, 1:1, 0:1, 0:1,  % version 4 bits
+       Rand2:12,
+       1:1, 0:1,            % RFC 4122 variant bits
+       Rand3:62>>, NewCache}.
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -548,77 +591,6 @@ get_v4_urandom() ->
       Rand2:12,
       1:1, 0:1,            % RFC 4122 variant bits
       Rand3:62>>.
-
-%%-------------------------------------------------------------------------
-%% @doc
-%% ===Get a v4 UUID (using Wichmann-Hill 1982).===
-%% random:uniform/1 repeats every 2.78e13
-%% (see B.A. Wichmann and I.D.Hill, in
-%%  'An efficient and portable pseudo-random number generator',
-%%  Journal of Applied Statistics. AS183. 1982, or Byte March 1987)
-%% a single random:uniform/1 call can provide a maximum of 45 bits
-%% (currently this is not significantly faster
-%%  because multiple function calls are necessary)
-%%
-%% explain the 45 bits of randomness:
-%%  random:uniform/0 code:
-%%   B1 = (A1*171) rem 30269,
-%%   B2 = (A2*172) rem 30307,
-%%   B3 = (A3*170) rem 30323,
-%%   put(random_seed, {B1,B2,B3}),
-%%   R = A1/30269 + A2/30307 + A3/30323,
-%%   R - trunc(R).
-%%
-%%  {B1, B2, B3} becomes the next seed value {A1, A2, A3}, so:
-%%    R = (918999161 * A1 + 917846887 * A2 + 917362583 * A3) / 27817185604309
-%%  Whatever the values for A1, A2, and A3,
-%%  (918999161 * A1 + 917846887 * A2 + 917362583 * A3) can not exceed
-%%  27817185604309 (30269 * 30307 * 30323) because of the previous modulus.
-%%  So, random:uniform/1 is unable to uniformly sample numbers beyond
-%%  a N of 27817185604309. The bits required to represent 27817185604309:
-%%   1> (math:log(27817185604309) / math:log(2)) + 1.
-%%   45.6610416965467
-%%
-%% @end
-%%-------------------------------------------------------------------------
-
--spec get_v4_urandom_bigint() ->
-    uuid().
-
-get_v4_urandom_bigint() ->
-    Rand1 = random:uniform(2199023255552) - 1, % random 41 bits
-    Rand2 = random:uniform(2199023255552) - 1, % random 41 bits
-    Rand3 = random:uniform(1099511627776) - 1, % random 40 bits
-    <<Rand2a:7, Rand2b:12, Rand2c:22>> = <<Rand2:41>>,
-    <<Rand1:41, Rand2a:7,
-      0:1, 1:1, 0:1, 0:1,  % version 4 bits
-      Rand2b:12,
-      1:1, 0:1,            % RFC 4122 variant bits
-      Rand2c:22, Rand3:40>>.
-
-%%-------------------------------------------------------------------------
-%% @doc
-%% ===Get a v4 UUID (using Wichmann-Hill 1982).===
-%% Attempt to only use native integers (Erlang limits integers to 27 bits
-%% before using bigints) to investigate the speed when using HiPE.
-%% @end
-%%-------------------------------------------------------------------------
-
--spec get_v4_urandom_native() ->
-    uuid().
-
-get_v4_urandom_native() ->
-    Rand1 = random:uniform(134217728) - 1, % random 27 bits
-    Rand2 = random:uniform(2097152) - 1,   % random 21 bits
-    Rand3 = random:uniform(1048576) - 1,   % random 20 bits
-    Rand4 = random:uniform(134217728) - 1, % random 27 bits
-    Rand5 = random:uniform(134217728) - 1, % random 27 bits
-    <<Rand3a:12, Rand3b:8>> = <<Rand3:20>>,
-    <<Rand1:27, Rand2:21,
-      0:1, 1:1, 0:1, 0:1,  % version 4 bits
-      Rand3a:12,
-      1:1, 0:1,            % RFC 4122 variant bits
-      Rand3b:8, Rand4:27, Rand5:27>>.
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -759,16 +731,14 @@ is_v5(_) ->
 %% @end
 %%-------------------------------------------------------------------------
 
--spec uuid_to_list(Value :: uuid()) ->
+-spec uuid_to_list(uuid()) ->
     iolist().
 
-uuid_to_list(Value)
-    when is_binary(Value), byte_size(Value) == 16 ->
-    <<B1:32/unsigned-integer,
-      B2:16/unsigned-integer,
-      B3:16/unsigned-integer,
-      B4:16/unsigned-integer,
-      B5:48/unsigned-integer>> = Value,
+uuid_to_list(<<B1:32/unsigned-integer,
+               B2:16/unsigned-integer,
+               B3:16/unsigned-integer,
+               B4:16/unsigned-integer,
+               B5:48/unsigned-integer>>) ->
     [B1, B2, B3, B4, B5].
 
 %%-------------------------------------------------------------------------
@@ -934,31 +904,83 @@ string_to_uuid(N01, N02, N03, N04, N05, N06, N07, N08,
 
 %%-------------------------------------------------------------------------
 %% @doc
-%% ===Is the binary a UUID?===
+%% ===Is the term a UUID?===
 %% @end
 %%-------------------------------------------------------------------------
 
--spec is_uuid(Value :: any()) ->
+-spec is_uuid(any()) ->
     boolean().
 
-is_uuid(Value)
-    when is_binary(Value), byte_size(Value) == 16 ->
-    is_v1(Value) orelse is_v3(Value) orelse is_v4(Value) orelse is_v5(Value);
+is_uuid(<<_:48,
+          Version:4/unsigned-integer,
+          _:12,
+          1:1, 0:1,            % RFC 4122 variant bits
+          _:62>>) ->
+    (Version == 1) orelse
+    (Version == 3) orelse
+    (Version == 4) orelse
+    (Version == 5);
 is_uuid(_) ->
     false.
 
 %%-------------------------------------------------------------------------
 %% @doc
-%% ===Increment the clock sequence of v1 UUID state.===
+%% ===Increment the clock sequence of v1 UUID state or a UUID.===
 %% Call to increment the clock sequence counter after the system clock has
 %% been set backwards (see the RFC).  This is only necessary
-%% if the `os' or `warp' timestamp_type is used.
+%% if the `os' or `warp' timestamp_type is used with a v1 UUID.
+%% The v3, v4 and v5 UUIDs are supported for completeness.
 %% @end
 %%-------------------------------------------------------------------------
 
--spec increment(State :: state()) ->
-    NewState :: state().
+-spec increment(state() | uuid()) ->
+    state() | uuid().
 
+increment(<<TimeLow:32, TimeMid:16,
+            0:1, 0:1, 0:1, 1:1,  % version 1 bits
+            TimeHigh:12,
+            1:1, 0:1,            % RFC 4122 variant bits
+            ClockSeq:14,
+            NodeId:48>>) ->
+    NextClockSeq = ClockSeq + 1,
+    NewClockSeq = if
+        NextClockSeq == 16384 ->
+            0;
+        true ->
+            NextClockSeq
+    end,
+    <<TimeLow:32, TimeMid:16,
+      0:1, 0:1, 0:1, 1:1,  % version 1 bits
+      TimeHigh:12,
+      1:1, 0:1,            % RFC 4122 variant bits
+      NewClockSeq:14,
+      NodeId:48>>;
+increment(<<Rand1:48,
+            Version:4/unsigned-integer,
+            Rand2:12,
+            1:1, 0:1,            % RFC 4122 variant bits
+            Rand3:62>>)
+    when (Version == 4) orelse (Version == 5) orelse (Version == 3) ->
+    <<Value:16/little-unsigned-integer-unit:8>> = <<Rand1:48,
+                                                    Rand2:12,
+                                                    Rand3:62,
+                                                    0:6>>,
+    NextValue = Value + 1,
+    NewValue = if
+        NextValue == 5316911983139663491615228241121378304 ->
+            1;
+        true ->
+            NextValue
+    end,
+    <<NewRand1:48,
+      NewRand2:12,
+      NewRand3:62,
+      0:6>> = <<NewValue:16/little-unsigned-integer-unit:8>>,
+    <<NewRand1:48,
+      Version:4/unsigned-integer,
+      NewRand2:12,
+      1:1, 0:1,            % RFC 4122 variant bits
+      NewRand3:62>>;
 increment(#uuid_state{clock_seq = ClockSeq} = State) ->
     NextClockSeq = ClockSeq + 1,
     NewClockSeq = if
@@ -1007,6 +1029,7 @@ test() ->
       V1NodeId1/binary>> = V1uuid1,
     true = uuid:is_uuid(V1uuid1),
     true = uuid:is_v1(V1uuid1),
+    "2012-12-08T03:13:58.564048Z" = uuid:get_v1_datetime(V1uuid1),
     <<V1Time1:60>> = <<V1TimeHigh1:12, V1TimeMid1:16, V1TimeLow1:32>>,
     V1Time1total = erlang:trunc((V1Time1 - 16#01b21dd213814000) / 10),
     V1Time1mega = erlang:trunc(V1Time1total / 1000000000000),
@@ -1015,6 +1038,13 @@ test() ->
         (V1Time1mega * 1000000 + V1Time1sec) * 1000000),
     {{2012, 12, 8}, {3, 13, 58}} =
         calendar:now_to_datetime({V1Time1mega, V1Time1sec, V1Time1micro}),
+    % max version 1 timestamp:
+    "5236-03-31T21:21:00.684697Z" = uuid:get_v1_datetime(<<16#ffffffff:32,
+                                                           16#ffff:16,
+                                                           0:1, 0:1, 0:1, 1:1,
+                                                           16#fff:12,
+                                                           1:1, 0:1,
+                                                           0:14, 0:48>>),
     % $ python
     % >>> import uuid
     % >>> import time
@@ -1024,6 +1054,7 @@ test() ->
     V1uuid2 = uuid:string_to_uuid("50d15f5c40e911e2a0eb001fd0a5484e"),
     "50d15f5c40e911e2a0eb001fd0a5484e" =
         uuid:uuid_to_string(V1uuid2, nodash),
+    "2012-12-08T03:42:40.199254Z" = uuid:get_v1_datetime(V1uuid2),
     <<V1TimeLow2:32, V1TimeMid2:16,
       0:1, 0:1, 0:1, 1:1,  % version 1 bits
       V1TimeHigh2:12,
@@ -1066,6 +1097,19 @@ test() ->
     V1uuid4timeA = uuid:get_v1_time(V1uuid4),
     true = (V1uuid4timeA < V1uuid4timeB) and
            ((V1uuid4timeA + 1000) > V1uuid4timeB),
+    V1State0 = uuid:new(self()),
+    {V1uuid5,  V1State1} = uuid:get_v1(V1State0),
+    {V1uuid6,  V1State2} = uuid:get_v1(V1State1),
+    {V1uuid7,  V1State3} = uuid:get_v1(V1State2),
+    {V1uuid8,  V1State4} = uuid:get_v1(V1State3),
+    {V1uuid9,  V1State5} = uuid:get_v1(V1State4),
+    {V1uuid10, V1State6} = uuid:get_v1(V1State5),
+    {V1uuid11, _} = uuid:get_v1(V1State6),
+    V1uuidL0 = [V1uuid5, V1uuid6, V1uuid7, V1uuid8,
+                V1uuid9, V1uuid10, V1uuid11],
+    V1uuidL1 = [V1uuid11, V1uuid9, V1uuid8, V1uuid7,
+                V1uuid6, V1uuid10, V1uuid5],
+    true = V1uuidL0 == lists:usort(V1uuidL1),
 
     % version 3 tests
     % $ python
@@ -1149,6 +1193,7 @@ test() ->
     true = (V4Rand1B /= V4Rand2B),
     true = (V4Rand1C /= V4Rand2C),
     true = (V4Rand1D /= V4Rand2D),
+    true = V4uuid3 /= uuid:increment(V4uuid3),
 
     % version 5 tests
     % $ python
@@ -1202,6 +1247,7 @@ test() ->
 -compile({inline,
           [{timestamp,1},
            {timestamp,2},
+           {int_to_dec,1},
            {int_to_hex,1},
            {hex_to_int,1}]}).
 
@@ -1219,6 +1265,11 @@ timestamp(os) ->
     {MegaSeconds, Seconds, MicroSeconds} = os:timestamp(),
     (MegaSeconds * 1000000 + Seconds) * 1000000 + MicroSeconds.
 
+timestamp(erlang_now, _) ->
+    timestamp(erlang_now);
+timestamp(os, _) ->
+    timestamp(os).
+
 -else.
 
 timestamp_type_erlang() ->
@@ -1234,34 +1285,46 @@ timestamp(os) ->
 timestamp(warp) ->
     erlang:system_time(micro_seconds).
 
--endif.
-
-timestamp(os, _) ->
-    timestamp(os);
-timestamp(warp, _) ->
-    timestamp(warp);
-timestamp(TimestampTypeInternal, TimestampLast) ->
-    TimestampNext = timestamp(TimestampTypeInternal),
+timestamp(erlang_timestamp, TimestampLast) ->
+    TimestampNext = timestamp(erlang_timestamp),
     if
         TimestampNext > TimestampLast ->
             TimestampNext;
         true ->
             TimestampLast + 1
-    end.
+    end;
+timestamp(os, _) ->
+    timestamp(os);
+timestamp(warp, _) ->
+    timestamp(warp).
+
+-endif.
+
+int_to_dec_list(I, N) when is_integer(I), I >= 0 ->
+    int_to_dec_list([], I, 1, N).
+
+int_to_dec_list(L, I, Count, N)
+    when I < 10 ->
+    int_to_list_pad([int_to_dec(I) | L], N - Count);
+int_to_dec_list(L, I, Count, N) ->
+    int_to_dec_list([int_to_dec(I rem 10) | L], I div 10, Count + 1, N).
 
 int_to_hex_list(I, N) when is_integer(I), I >= 0 ->
     int_to_hex_list([], I, 1, N).
 
-int_to_hex_list_pad(L, 0) ->
+int_to_list_pad(L, 0) ->
     L;
-int_to_hex_list_pad(L, Count) ->
-    int_to_hex_list_pad([$0 | L], Count - 1).
+int_to_list_pad(L, Count) ->
+    int_to_list_pad([$0 | L], Count - 1).
 
 int_to_hex_list(L, I, Count, N)
     when I < 16 ->
-    int_to_hex_list_pad([int_to_hex(I) | L], N - Count);
+    int_to_list_pad([int_to_hex(I) | L], N - Count);
 int_to_hex_list(L, I, Count, N) ->
     int_to_hex_list([int_to_hex(I rem 16) | L], I div 16, Count + 1, N).
+
+int_to_dec(I) when 0 =< I, I =< 9 ->
+    I + $0.
 
 int_to_hex(I) when 0 =< I, I =< 9 ->
     I + $0;
@@ -1293,6 +1356,16 @@ mac_address([{_, L} | Rest]) ->
                     MAC
             end
     end.
+
+-ifdef(ERLANG_OTP_VERSION_18_FEATURES).
+pseudo_random(N) ->
+    % assuming exsplus for 58 bits, period 8.31e34
+    rand:uniform(N).
+-else.
+pseudo_random(N) ->
+    % period 2.78e13
+    random:uniform(N).
+-endif.
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
