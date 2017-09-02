@@ -3,7 +3,10 @@
 
 -module(pseudo_randomness).
 
--export([test/1, run/2, run_s/3]).
+-export([test/1,
+         run/2, run_s/3,
+         run_nonuniform/2, run_nonuniform_s/3,
+         run_nonuniform2/2, run_nonuniform2_s/3]).
 
 -include("erlbench.hrl").
 
@@ -24,6 +27,9 @@ test_18_unique() ->
 
 test_20_rand() ->
     rand:uniform(10).
+
+test_20_rand_normal() ->
+    rand:normal(0, 1).
 
 %test_now() ->
 %    % most uniform solution
@@ -100,6 +106,18 @@ test_quickrand_cache_uniform() ->
 test_quickrand_cache_uniform(State) ->
     quickrand_cache:uniform(10, State).
 
+test_quickrand_cache_float() ->
+    quickrand_cache:floatR().
+
+test_quickrand_cache_float(State) ->
+    quickrand_cache:floatR(State).
+
+test_quickrand_cache_normal_box_muller() ->
+    quickrand_cache_normal:box_muller(0, 1).
+
+test_quickrand_cache_normal_box_muller(State) ->
+    quickrand_cache_normal:box_muller(0, 1, State).
+
 -ifdef(PRINT_DISTRIBUTION).
 counts_init() ->
     lists:foreach(fun(I) ->
@@ -144,6 +162,40 @@ run_s(N, F, S0) ->
     counts_incr(Value),
     true = Value =< 10,
     run_s(N - 1, F, S1).
+
+run_nonuniform(0, _) ->
+    ok;
+run_nonuniform(N, F) ->
+    Value = F(),
+    true = (Value >= -10) andalso (Value =< 10),
+    run_nonuniform(N - 1, F).
+
+run_nonuniform_s(0, _, _) ->
+    ok;
+run_nonuniform_s(N, F, S0) ->
+    {Value, S1} = F(S0),
+    true = (Value >= -10) andalso (Value =< 10),
+    run_nonuniform_s(N - 1, F, S1).
+
+run_nonuniform2(-1, _) ->
+    ok;
+run_nonuniform2(0, _) ->
+    ok;
+run_nonuniform2(N, F) ->
+    {Value1, Value2} = F(),
+    true = (Value1 >= -10) andalso (Value1 =< 10),
+    true = (Value2 >= -10) andalso (Value2 =< 10),
+    run_nonuniform2(N - 2, F).
+
+run_nonuniform2_s(-1, _, _) ->
+    ok;
+run_nonuniform2_s(0, _, _) ->
+    ok;
+run_nonuniform2_s(N, F, S0) ->
+    {Value1, Value2, S1} = F(S0),
+    true = (Value1 >= -10) andalso (Value1 =< 10),
+    true = (Value2 >= -10) andalso (Value2 =< 10),
+    run_nonuniform2_s(N - 2, F, S1).
 
 test(N) ->
     <<I1:32/unsigned-integer,
@@ -248,6 +300,15 @@ test(N) ->
     {Test25, _} = timer:tc(?MODULE, run_s, [N, fun test_quickrand_cache_uniform/1, quickrand_cache:new()]),
     counts_print("quickrand_cache:uniform/2"),
 
+    {Test26, _} = timer:tc(?MODULE, run_nonuniform, [N, fun test_quickrand_cache_float/0]),
+    {Test27, _} = timer:tc(?MODULE, run_nonuniform_s, [N, fun test_quickrand_cache_float/1, quickrand_cache:new()]),
+
+    % normal distribution randomness, not a uniform distribution
+    _ = rand:seed(exsp, {IP1, IP2, IP3}),
+    {Test28, _} = timer:tc(?MODULE, run_nonuniform, [N, fun test_20_rand_normal/0]),
+    {Test29, _} = timer:tc(?MODULE, run_nonuniform2, [N, fun test_quickrand_cache_normal_box_muller/0]),
+    {Test30, _} = timer:tc(?MODULE, run_nonuniform2_s, [N, fun test_quickrand_cache_normal_box_muller/1, quickrand_cache:new()]),
+
     %% results
     [
         %#result{name = "erlang:now/0",               get =  Test1},
@@ -273,7 +334,12 @@ test(N) ->
         #result{name = "19_os:perf_counter/1",       get =  Test21},
         #result{name = "os_time:perf_counter/0",     get =  Test22},
         #result{name = "18_os:system_time/1",        get =  Test23},
-        #result{name = "quickrand_cache:uniform/1",  get =  Test24},
-        #result{name = "quickrand_cache:uniform/2",  get =  Test25}%,
+        #result{name = "quickrand_c:uni/1",          get =  Test24},
+        #result{name = "quickrand_c:uni/2",          get =  Test25},
+        #result{name = "quickrand_c:floatR/0",       get =  Test26},
+        #result{name = "quickrand_c:floatR/1",       get =  Test27},
+        #result{name = "20_rand:normal",             get =  Test28},
+        #result{name = "quickrand_c_normal/2",       get =  Test29},
+        #result{name = "quickrand_c_normal/3",       get =  Test30}%,
     ].
 

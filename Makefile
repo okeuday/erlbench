@@ -123,6 +123,8 @@ BUILT=\
     ebin/queue_in_out.beam \
     ebin/quickrand.beam \
     ebin/quickrand_cache.beam \
+    ebin/quickrand_cache_normal.beam \
+    ebin/quickrand_normal.beam \
     ebin/random_wh06_int.beam \
     ebin/random_wh82.beam \
     ebin/random_wh82_int.beam \
