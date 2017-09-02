@@ -10,7 +10,8 @@
 
 -include("erlbench.hrl").
 
--define(PRINT_DISTRIBUTION, true).
+% updating the distribution skews the results
+%-define(PRINT_DISTRIBUTION, true).
 
 test_18_bxor_abs() ->
     I = erlang:abs(erlang:monotonic_time() bxor erlang:unique_integer()),
@@ -117,6 +118,9 @@ test_quickrand_cache_normal_box_muller() ->
 
 test_quickrand_cache_normal_box_muller(State) ->
     quickrand_cache_normal:box_muller(0, 1, State).
+
+-compile({inline,
+          [{counts_incr,1}]}).
 
 -ifdef(PRINT_DISTRIBUTION).
 counts_init() ->
