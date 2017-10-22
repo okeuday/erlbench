@@ -84,6 +84,7 @@ BUILT=\
     ebin/ejson_encode.beam \
     ebin/ejson.beam \
     ebin/hamt.beam \
+    ebin/hash_function.beam \
     ebin/hashdict.beam \
     ebin/hasht.beam \
     ebin/hashtl2.beam \
@@ -124,6 +125,7 @@ BUILT=\
     ebin/quickrand.beam \
     ebin/quickrand_cache.beam \
     ebin/quickrand_cache_normal.beam \
+    ebin/quickrand_hash.beam \
     ebin/quickrand_normal.beam \
     ebin/random_wh06_int.beam \
     ebin/random_wh82.beam \
