@@ -29,8 +29,11 @@
 %-define(COUNTS, [10, 100, 1000, 10000, 100000]).
 %-define(TESTS, [list_match]).
 
+%-define(COUNTS, [100000]).
+%-define(TESTS, [hash_function]).
+
 -define(COUNTS, [100000]).
--define(TESTS, [hash_function]).
+-define(TESTS, [list_traversal]).
 
 %-define(COUNTS, [1000, 10000, 100000]).
 %-define(TESTS, [string_key]).

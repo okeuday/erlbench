@@ -24,12 +24,16 @@ traverse_map(L) ->
 traverse_reverse(L) ->
     traverse_reverse([], lists:reverse(L)).
     
+traverse_reverse(L, []) ->
+    L;
 traverse_reverse(L, [H | T]) ->
     traverse_reverse([(H + 1) | L], T).
 
 traverse_append(L) ->
     traverse_append([], L).
 
+traverse_append(L, []) ->
+    L;
 traverse_append(L, [H | T]) ->
     traverse_append(L ++ [H + 1], T).
 
