@@ -5,7 +5,7 @@
 %%%
 %%% MIT License
 %%%
-%%% Copyright (c) 2016-2017 Michael Truog <mjtruog at gmail dot com>
+%%% Copyright (c) 2016-2017 Michael Truog <mjtruog at protonmail dot com>
 %%%
 %%% Permission is hereby granted, free of charge, to any person obtaining a
 %%% copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@
 %%%------------------------------------------------------------------------
 
 -module(os_time).
--author('mjtruog [at] gmail (dot) com').
+-author('mjtruog at protonmail dot com').
 
 %% external interface
 -export([perf_counter/0]).
