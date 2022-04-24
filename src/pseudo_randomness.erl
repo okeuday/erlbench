@@ -32,6 +32,10 @@ test_18_unique() ->
     I = erlang:unique_integer([positive]),
     (I rem 10) + 1.
 
+test_18_phash2_unique() ->
+    % not uniform at all, excluded from test
+    erlang:phash2(erlang:unique_integer(), 10) + 1.
+
 test_20_rand() ->
     rand:uniform(10).
 
@@ -323,6 +327,9 @@ test(N) ->
     {Test32, _} = timer:tc(?MODULE, run, [N, fun test_25_rand_mcg35/0]),
     counts_print("quickrand:mcg35/1"),
     %{Test33, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_strong_uniform/0]),
+    %counts_init(),
+    %{Test34, _} = timer:tc(?MODULE, run, [N, fun test_18_phash2_unique/0]),
+    %counts_print("18_unique_phash2"),
 
     %% results
     [
@@ -339,7 +346,7 @@ test(N) ->
         %#result{name = "erlang:make_ref/0 hash",     get =  Test11}
         #result{name = "18_bxor_abs",                get =  Test12},
         #result{name = "18_monotonic",               get =  Test13},
-        %#result{name = "18_unique",                  get =  Test14}%,
+        %#result{name = "18_unique",                  get =  Test14},
         #result{name = "20_rand_exsp",               get =  Test15},
         #result{name = "20_rand_exrop",              get =  Test16},
         #result{name = "20_rand_exs1024s",           get =  Test17},
@@ -359,5 +366,6 @@ test(N) ->
         #result{name = "25_rand_lcg35",              get =  Test31},
         #result{name = "25_rand_mcg35",              get =  Test32}%,
         %#result{name = "quickrand:strong_uniform/1", get =  Test33}%,
+        %#result{name = "18_unique_phash2",           get =  Test34}%,
     ].
 
