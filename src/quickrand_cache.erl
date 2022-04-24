@@ -8,7 +8,7 @@
 %%%
 %%% MIT License
 %%%
-%%% Copyright (c) 2017 Michael Truog <mjtruog at protonmail dot com>
+%%% Copyright (c) 2017-2020 Michael Truog <mjtruog at protonmail dot com>
 %%%
 %%% Permission is hereby granted, free of charge, to any person obtaining a
 %%% copy of this software and associated documentation files (the "Software"),
@@ -29,8 +29,8 @@
 %%% DEALINGS IN THE SOFTWARE.
 %%%
 %%% @author Michael Truog <mjtruog at protonmail dot com>
-%%% @copyright 2017 Michael Truog
-%%% @version 1.7.2 {@date} {@time}
+%%% @copyright 2017-2020 Michael Truog
+%%% @version 2.0.2 {@date} {@time}
 %%%------------------------------------------------------------------------
 
 -module(quickrand_cache).
@@ -301,7 +301,7 @@ uniform(1) ->
 uniform(N) when is_integer(N), N > 1 ->
     Bytes = bytes(N),
     Bits = Bytes * 8,
-    <<I:Bits/integer>> = rand_bytes(Bytes),
+    <<I:Bits/unsigned-integer>> = rand_bytes(Bytes),
     (I rem N) + 1.
 
 %%-------------------------------------------------------------------------
@@ -323,7 +323,7 @@ uniform(1, State) ->
 uniform(N, State) when is_integer(N), N > 1 ->
     Bytes = bytes(N),
     Bits = Bytes * 8,
-    {<<I:Bits/integer>>, NewState} = rand_bytes(Bytes, State),
+    {<<I:Bits/unsigned-integer>>, NewState} = rand_bytes(Bytes, State),
     {(I rem N) + 1, NewState}.
 
 %%-------------------------------------------------------------------------
@@ -401,7 +401,15 @@ option(Key, Options) ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-process_dictionary_basic_test() ->
+-include("quickrand_test.hrl").
+
+module_test_() ->
+    {timeout, ?TEST_TIMEOUT, [
+        {"process dictionary tests", ?_assertOk(t_process_dictionary())},
+        {"state tests", ?_assertOk(t_state())}
+    ]}.
+
+t_process_dictionary() ->
     ok = init([{cache_size, 8}]),
     Random0 = rand_bytes(2),
     2 = byte_size(Random0),
@@ -415,7 +423,7 @@ process_dictionary_basic_test() ->
     1023 = byte_size(Random4),
     ok.
 
-state_basic_test() ->
+t_state() ->
     State0 = new([{cache_size, 8}]),
     {Random0, State1} = rand_bytes(2, State0),
     2 = byte_size(Random0),

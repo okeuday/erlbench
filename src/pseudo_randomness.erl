@@ -13,6 +13,12 @@
 % updating the distribution skews the results
 %-define(PRINT_DISTRIBUTION, true).
 
+test_25_rand_lcg35() ->
+    quickrand:lcg35(10).
+
+test_25_rand_mcg35() ->
+    quickrand:mcg35(10).
+
 test_18_bxor_abs() ->
     I = erlang:abs(erlang:monotonic_time() bxor erlang:unique_integer()),
     (I rem 10) + 1.
@@ -97,7 +103,7 @@ test_19_perf_counter() ->
     I = os:perf_counter(micro_seconds),
     (I rem 10) + 1.
 
-test_os_time_perf_counter() ->
+test_22_os_time_perf_counter() ->
     I = os_time:perf_counter(),
     (I rem 10) + 1.
 
@@ -118,6 +124,9 @@ test_quickrand_cache_normal_box_muller() ->
 
 test_quickrand_cache_normal_box_muller(State) ->
     quickrand_cache_normal:box_muller(0, 1, State).
+
+test_quickrand_strong_uniform() ->
+    quickrand:strong_uniform(10).
 
 -compile({inline,
           [{counts_incr,1}]}).
@@ -150,7 +159,7 @@ counts_print(Title) ->
 counts_print(_) ->
     ok.
 -endif.
-    
+
 run(0, _) ->
     ok;
 run(N, F) ->
@@ -202,21 +211,19 @@ run_nonuniform2_s(N, F, S0) ->
     run_nonuniform2_s(N - 2, F, S1).
 
 test(N) ->
-    <<I1:32/unsigned-integer,
-      I2:32/unsigned-integer,
-      I3:32/unsigned-integer,
-      I4:32/unsigned-integer>> = crypto:strong_rand_bytes(16),
+    ok = quickrand:seed(),
+    <<I1:64/unsigned-integer,
+      I2:64/unsigned-integer,
+      I3:64/unsigned-integer>> = crypto:strong_rand_bytes(24),
     IP1 = I1 + 1,
     IP2 = I2 + 1,
     IP3 = I3 + 1,
-    IP4 = I4 + 1,
     %counts_init(),
     %{Test1, _} = timer:tc(?MODULE, run, [N, fun test_now/0]),
     %counts_print("erlang:now/0"),
     %counts_init(),
     %{Test2, _} = timer:tc(?MODULE, run, [N, fun test_crypto/0]),
     %counts_print("crypto:rand_uniform/2"),
-    %random:seed(IP1, IP2, IP3),
     %counts_init(),
     %{Test3, _} = timer:tc(?MODULE, run, [N, fun test_random/0]),
     %counts_print("random:uniform/1"),
@@ -232,7 +239,6 @@ test(N) ->
     %counts_init(),
     %{Test6, _} = timer:tc(?MODULE, run, [N, fun test_stats_io/0]),
     %counts_print("erlang:statistics(io)"),
-    random_wh06_int:seed(IP1, IP2, IP3, IP4),
     counts_init(),
     {Test7, _} = timer:tc(?MODULE, run, [N, fun test_random_wh06_int/0]),
     counts_print("random_wh06_int:uniform/1"),
@@ -275,11 +281,9 @@ test(N) ->
     counts_init(),
     {Test17, _} = timer:tc(?MODULE, run, [N, fun test_20_rand/0]),
     counts_print("20_rand_exs1024s"),
-    random_wh82:seed(IP1, IP2, IP3),
     counts_init(),
     {Test18, _} = timer:tc(?MODULE, run, [N, fun test_random_wh82/0]),
     counts_print("random_wh82:uniform/1"),
-    random_wh82_int:seed(IP1, IP2, IP3),
     counts_init(),
     {Test19, _} = timer:tc(?MODULE, run, [N, fun test_random_wh82_int/0]),
     counts_print("random_wh82_int:uniform/1"),
@@ -289,9 +293,9 @@ test(N) ->
     counts_init(),
     {Test21, _} = timer:tc(?MODULE, run, [N, fun test_19_perf_counter/0]),
     counts_print("19_os:perf_counter(micro_seconds)"),
-    counts_init(),
-    {Test22, _} = timer:tc(?MODULE, run, [N, fun test_os_time_perf_counter/0]),
-    counts_print("os_time:perf_counter()"),
+    %counts_init(),
+    %{Test22, _} = timer:tc(?MODULE, run, [N, fun test_22_os_time_perf_counter/0]),
+    %counts_print("22_os_time:perf_counter()"),
     counts_init(),
     {Test23, _} = timer:tc(?MODULE, run, [N, fun test_18_os_system_time/0]),
     counts_print("18_os:system_time(micro_seconds)"),
@@ -312,6 +316,13 @@ test(N) ->
     {Test28, _} = timer:tc(?MODULE, run_nonuniform, [N, fun test_20_rand_normal/0]),
     {Test29, _} = timer:tc(?MODULE, run_nonuniform2, [N, fun test_quickrand_cache_normal_box_muller/0]),
     {Test30, _} = timer:tc(?MODULE, run_nonuniform2_s, [N, fun test_quickrand_cache_normal_box_muller/1, quickrand_cache:new()]),
+    counts_init(),
+    {Test31, _} = timer:tc(?MODULE, run, [N, fun test_25_rand_lcg35/0]),
+    counts_print("quickrand:lcg35/1"),
+    counts_init(),
+    {Test32, _} = timer:tc(?MODULE, run, [N, fun test_25_rand_mcg35/0]),
+    counts_print("quickrand:mcg35/1"),
+    %{Test33, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_strong_uniform/0]),
 
     %% results
     [
@@ -336,7 +347,7 @@ test(N) ->
         #result{name = "random_wh82_int:uniform/1",  get =  Test19},
         #result{name = "18_erlang:system_time/1",    get =  Test20},
         #result{name = "19_os:perf_counter/1",       get =  Test21},
-        #result{name = "os_time:perf_counter/0",     get =  Test22},
+        %#result{name = "22_os_time:perf_counter/0",     get =  Test22},
         #result{name = "18_os:system_time/1",        get =  Test23},
         #result{name = "quickrand_c:uni/1",          get =  Test24},
         #result{name = "quickrand_c:uni/2",          get =  Test25},
@@ -344,6 +355,9 @@ test(N) ->
         #result{name = "quickrand_c:floatR/1",       get =  Test27},
         #result{name = "20_rand:normal",             get =  Test28},
         #result{name = "quickrand_c_normal/2",       get =  Test29},
-        #result{name = "quickrand_c_normal/3",       get =  Test30}%,
+        #result{name = "quickrand_c_normal/3",       get =  Test30},
+        #result{name = "25_rand_lcg35",              get =  Test31},
+        #result{name = "25_rand_mcg35",              get =  Test32}%,
+        %#result{name = "quickrand:strong_uniform/1", get =  Test33}%,
     ].
 

@@ -17,8 +17,8 @@
 %-define(COUNTS, [100]).
 %-define(TESTS, [json_encode, json_decode]).
 
-%-define(COUNTS, [10000]).
-%-define(TESTS, [pseudo_randomness]).
+-define(COUNTS, [10000]).
+-define(TESTS, [pseudo_randomness]).
 %-define(COUNTS, [10000000]).
 %-define(TESTS, [math_speed]).
 
@@ -32,8 +32,8 @@
 %-define(COUNTS, [100000]).
 %-define(TESTS, [hash_function]).
 
--define(COUNTS, [100000]).
--define(TESTS, [list_traversal]).
+%-define(COUNTS, [100000]).
+%-define(TESTS, [list_traversal]).
 
 %-define(COUNTS, [1000, 10000, 100000]).
 %-define(TESTS, [string_key]).
@@ -161,7 +161,7 @@ minimum(undefined, I)
 minimum(I, undefined)
     when is_number(I) ->
     I;
-    
+
 minimum(I1, I2)
     when is_number(I1), is_number(I2) ->
     erlang:min(I1, I2).

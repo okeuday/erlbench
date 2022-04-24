@@ -1,67 +1,7 @@
 #-*-Mode:make;coding:utf-8;tab-width:4;c-basic-offset:4-*-
 # ex: set ft=make fenc=utf-8 sts=4 ts=4 sw=4 noet nomod:
 ERL_OPTS=+C multi_time_warp
-COMPILE_FLAGS=-DERLANG_OTP_VERSION_20
-COMPILE_FLAGS_HIPE=\
-icode_range,icode_ssa_const_prop,\
-icode_ssa_copy_prop,icode_type,icode_inline_bifs,\
-rtl_lcm,rtl_ssa,rtl_ssa_const_prop,spillmin_color,\
-use_indexing,remove_comments,concurrent_comp,\
-binary_opt,inline_fp,pmatch,peephole,verbose,verbose
-COMPILE_FLAGS_O0=
-COMPILE_FLAGS_O1=\
-+warn_obsolete_guard \
-+warn_unused_import \
-+warn_shadow_vars \
-+warn_export_vars \
-+debug_info \
-+native \
-+'{hipe,[o1,verbose,$(COMPILE_FLAGS_HIPE)]}'
-COMPILE_FLAGS_O2=\
-+warn_obsolete_guard \
-+warn_unused_import \
-+warn_shadow_vars \
-+warn_export_vars \
-+debug_info \
-+native \
-+'{hipe,[o2,verbose,$(COMPILE_FLAGS_HIPE)]}'
-COMPILE_FLAGS_O3=\
-+warn_obsolete_guard \
-+warn_unused_import \
-+warn_shadow_vars \
-+warn_export_vars \
-+debug_info \
-+native \
-+'{hipe,[o3,verbose,$(COMPILE_FLAGS_HIPE)]}'
-COMPILE_FLAGS_O3_INLINE=\
-+warn_obsolete_guard \
-+warn_unused_import \
-+warn_shadow_vars \
-+warn_export_vars \
-+debug_info \
-+native \
-+'{hipe,[o3,verbose,$(COMPILE_FLAGS_HIPE)]}' \
-+inline \
-+inline_list_funcs
-
-ifeq ($(OPTIMIZE),4)
-COMPILE_FLAGS+=$(COMPILE_FLAGS_O3_INLINE)
-else
-ifeq ($(OPTIMIZE),3)
-COMPILE_FLAGS+=$(COMPILE_FLAGS_O3)
-else
-ifeq ($(OPTIMIZE),2)
-COMPILE_FLAGS+=$(COMPILE_FLAGS_O2)
-else
-ifeq ($(OPTIMIZE),1)
-COMPILE_FLAGS+=$(COMPILE_FLAGS_O1)
-else
-$(warning OPTIMIZE defaults to 0 (no compile options))
-COMPILE_FLAGS+=$(COMPILE_FLAGS_O0)
-endif
-endif
-endif
-endif
+COMPILE_FLAGS=+nowarn_unused_function
 
 all: test
 

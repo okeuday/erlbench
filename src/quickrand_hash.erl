@@ -26,7 +26,7 @@
 %%%
 %%% MIT License
 %%%
-%%% Copyright (c) 2017 Michael Truog <mjtruog at protonmail dot com>
+%%% Copyright (c) 2017-2021 Michael Truog <mjtruog at protonmail dot com>
 %%%
 %%% Permission is hereby granted, free of charge, to any person obtaining a
 %%% copy of this software and associated documentation files (the "Software"),
@@ -47,8 +47,8 @@
 %%% DEALINGS IN THE SOFTWARE.
 %%%
 %%% @author Michael Truog <mjtruog at protonmail dot com>
-%%% @copyright 2017 Michael Truog
-%%% @version 1.7.3 {@date} {@time}
+%%% @copyright 2017-2021 Michael Truog
+%%% @version 2.0.2 {@date} {@time}
 %%%------------------------------------------------------------------------
 
 -module(quickrand_hash).
@@ -65,6 +65,30 @@
          jenkins64_64/2,
          jenkins64_32/1,
          jenkins64_32/2]).
+
+-ifdef(OTP_RELEASE).
+% able to use -if/-elif here
+-if(?OTP_RELEASE >= 24).
+-define(ERLANG_OTP_VERSION_24_FEATURES, true).
+-endif.
+-endif.
+
+-ifdef(ERLANG_OTP_VERSION_24_FEATURES).
+% iodata() recursive type is not infinitely recursive
+% like within the function iodata_to_list/1
+% (unable to only use no_underspecs on iodata_to_list/1)
+-dialyzer({no_underspecs,
+           [jenkins_32/1,
+            jenkins_32/2,
+            jenkins_64/1,
+            jenkins_64/2,
+            jenkins64_128/1,
+            jenkins64_128/2,
+            jenkins64_64/1,
+            jenkins64_64/2,
+            jenkins64_32/1,
+            jenkins64_32/2]}).
+-endif.
 
 % a constant which:
 %  * is not zero
@@ -614,6 +638,9 @@ subtract_32(X0, X1)
     when is_integer(X0), is_integer(X1) ->
     (X0 - X1) band ?BITMASK32.
 
+-spec iodata_to_list(IOData :: iodata()) ->
+    {list(byte()), non_neg_integer()}.
+
 iodata_to_list(IOData)
     when is_binary(IOData) ->
     {erlang:binary_to_list(IOData), byte_size(IOData)};
@@ -621,6 +648,12 @@ iodata_to_list(IOData)
     when is_list(IOData) ->
     iodata_to_list([], IOData, 0).
 
+iodata_to_list(ListOut, [], Size) ->
+    {lists:reverse(ListOut), Size};
+iodata_to_list(ListOut, Binary, Size)
+    when is_binary(Binary) ->
+    iodata_to_list(lists:reverse(erlang:binary_to_list(Binary), ListOut),
+                   [], Size + byte_size(Binary));
 iodata_to_list(ListOut, [Binary | IODataIn], Size)
     when is_binary(Binary) ->
     iodata_to_list(lists:reverse(erlang:binary_to_list(Binary), ListOut),
@@ -629,19 +662,22 @@ iodata_to_list(ListOut0, [List | IODataIn], Size0)
     when is_list(List) ->
     {ListOutN, SizeN} = iodata_to_list(ListOut0, List, Size0),
     iodata_to_list(lists:reverse(ListOutN), IODataIn, SizeN);
-iodata_to_list(ListOut, [], Size) ->
-    {lists:reverse(ListOut), Size};
 iodata_to_list(ListOut, [Byte | IOData], Size)
     when is_integer(Byte), Byte >= 0, Byte =< 255 ->
-    iodata_to_list([Byte | ListOut], IOData, Size + 1);
-iodata_to_list(ListOut, Byte, Size)
-    when is_integer(Byte), Byte >= 0, Byte =< 255 ->
-    {lists:reverse([Byte | ListOut]), Size + 1}.
+    iodata_to_list([Byte | ListOut], IOData, Size + 1).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-jenkins_test() ->
+-include("quickrand_test.hrl").
+
+module_test_() ->
+    {timeout, ?TEST_TIMEOUT, [
+        {"jenkins tests", ?_assertOk(t_jenkins())},
+        {"jenkins64 tests", ?_assertOk(t_jenkins64())}
+    ]}.
+
+t_jenkins() ->
     Message1List = "The quick brown fox jumps over the lazy dog",
     Message1Binary = erlang:list_to_binary(Message1List),
     Hash1_32 = 1995770187,
@@ -650,9 +686,9 @@ jenkins_test() ->
     Hash1_32 = quickrand_hash:jenkins_32(Message1Binary),
     Hash1_64 = quickrand_hash:jenkins_64(Message1List),
     Hash1_64 = quickrand_hash:jenkins_64(Message1Binary),
-	ok.
+    ok.
 
-jenkins64_test() ->
+t_jenkins64() ->
     Message1List = "The quick brown fox jumps over the lazy dog",
     Message1Binary = erlang:list_to_binary(Message1List),
     Hash1_32 = 564871382,
