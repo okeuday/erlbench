@@ -13,12 +13,6 @@
 % updating the distribution skews the results
 %-define(PRINT_DISTRIBUTION, true).
 
-test_25_rand_lcg35() ->
-    quickrand:lcg35(10).
-
-test_25_rand_mcg35() ->
-    quickrand:mcg35(10).
-
 test_18_bxor_abs() ->
     I = erlang:abs(erlang:monotonic_time() bxor erlang:unique_integer()),
     (I rem 10) + 1.
@@ -131,6 +125,21 @@ test_quickrand_cache_normal_box_muller(State) ->
 
 test_quickrand_strong_uniform() ->
     quickrand:strong_uniform(10).
+
+test_quickrand_lcg35() ->
+    quickrand:lcg35(10).
+
+test_quickrand_mcg35() ->
+    quickrand:mcg35(10).
+
+test_quickrand_mwc128_64() ->
+    quickrand:mwc128_64(10).
+
+test_quickrand_mwc256_64() ->
+    quickrand:mwc256_64(10).
+
+test_quickrand_mwc256_128() ->
+    quickrand:mwc256_128(10).
 
 -compile({inline,
           [{counts_incr,1}]}).
@@ -321,15 +330,24 @@ test(N) ->
     {Test29, _} = timer:tc(?MODULE, run_nonuniform2, [N, fun test_quickrand_cache_normal_box_muller/0]),
     {Test30, _} = timer:tc(?MODULE, run_nonuniform2_s, [N, fun test_quickrand_cache_normal_box_muller/1, quickrand_cache:new()]),
     counts_init(),
-    {Test31, _} = timer:tc(?MODULE, run, [N, fun test_25_rand_lcg35/0]),
+    {Test31, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_lcg35/0]),
     counts_print("quickrand:lcg35/1"),
     counts_init(),
-    {Test32, _} = timer:tc(?MODULE, run, [N, fun test_25_rand_mcg35/0]),
+    {Test32, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_mcg35/0]),
     counts_print("quickrand:mcg35/1"),
     %{Test33, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_strong_uniform/0]),
     %counts_init(),
     %{Test34, _} = timer:tc(?MODULE, run, [N, fun test_18_phash2_unique/0]),
     %counts_print("18_unique_phash2"),
+    counts_init(),
+    {Test35, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_mwc128_64/0]),
+    counts_print("quickrand:mwc128_64/1"),
+    counts_init(),
+    {Test36, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_mwc256_64/0]),
+    counts_print("quickrand:mwc256_64/1"),
+    counts_init(),
+    {Test37, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_mwc256_128/0]),
+    counts_print("quickrand:mwc256_128/1"),
 
     %% results
     [
@@ -363,9 +381,12 @@ test(N) ->
         #result{name = "20_rand:normal",             get =  Test28},
         #result{name = "quickrand_c_normal/2",       get =  Test29},
         #result{name = "quickrand_c_normal/3",       get =  Test30},
-        #result{name = "25_rand_lcg35",              get =  Test31},
-        #result{name = "25_rand_mcg35",              get =  Test32}%,
+        #result{name = "quickrand:lcg35/1",          get =  Test31},
+        #result{name = "quickrand:mcg35/1",          get =  Test32},
         %#result{name = "quickrand:strong_uniform/1", get =  Test33}%,
         %#result{name = "18_unique_phash2",           get =  Test34}%,
+        #result{name = "quickrand:mwc128_64/1",      get =  Test35},
+        #result{name = "quickrand:mwc256_64/1",      get =  Test36},
+        #result{name = "quickrand:mwc256_128/1",     get =  Test37}%,
     ].
 
