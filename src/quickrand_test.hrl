@@ -2,10 +2,11 @@
 % ex: set ft=erlang fenc=utf-8 sts=4 ts=4 sw=4 et nomod:
 %%%
 %%%------------------------------------------------------------------------
+%%% quickrand eunit common functionality
 %%%
 %%% MIT License
 %%%
-%%% Copyright (c) 2017-2022 Michael Truog <mjtruog at protonmail dot com>
+%%% Copyright (c) 2020 Michael Truog <mjtruog at protonmail dot com>
 %%%
 %%% Permission is hereby granted, free of charge, to any person obtaining a
 %%% copy of this software and associated documentation files (the "Software"),
@@ -27,13 +28,13 @@
 %%%
 %%%------------------------------------------------------------------------
 
--define(BYTES_RESOLUTION, 4). % bytes
+-ifndef(_assertOk).
+-define(_assertOk(Expr), ?_assertEqual(ok, Expr)).
+-endif.
 
-bytes(I) when is_integer(I), I > 0 ->
-    bytes(I, 0).
-
-bytes(0, Bytes) ->
-    Bytes;
-bytes(I, Bytes) ->
-    bytes(I bsr (?BYTES_RESOLUTION * 8), Bytes + ?BYTES_RESOLUTION).
+-ifdef(CLOUDI_TEST_TIMEOUT).
+-define(TEST_TIMEOUT, ?CLOUDI_TEST_TIMEOUT). % seconds
+-else.
+-define(TEST_TIMEOUT, 10). % seconds
+-endif.
 
