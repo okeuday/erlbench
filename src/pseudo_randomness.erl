@@ -10,6 +10,8 @@
 
 -include("erlbench.hrl").
 
+-define(MWC59_PDICT_KEY, rand_mwc59_seed).
+
 % updating the distribution skews the results
 %-define(PRINT_DISTRIBUTION, true).
 
@@ -35,6 +37,19 @@ test_20_rand() ->
 
 test_20_rand_normal() ->
     rand:normal(0, 1).
+
+test_25_rand_mwc59() ->
+    Seed1 = case erlang:get(?MWC59_PDICT_KEY) of
+        undefined ->
+            <<Seed0:58/unsigned-integer,
+              _:6>> = crypto:strong_rand_bytes(8),
+            Seed0 + 1;
+        Seed0 when is_integer(Seed0) ->
+            Seed0
+    end,
+    SeedN = rand:mwc59(Seed1),
+    _ = erlang:put(?MWC59_PDICT_KEY, SeedN),
+    rand:mwc59_value32(SeedN) rem 10.
 
 %test_now() ->
 %    % most uniform solution
@@ -129,11 +144,8 @@ test_quickrand_strong_uniform() ->
 test_quickrand_lcg35x_32() ->
     quickrand:lcg35x_32(10).
 
-test_quickrand_mwc64x_32() ->
-    quickrand:mwc64x_32(10).
-
-test_quickrand_mwc64x_64() ->
-    quickrand:mwc64x_64(10).
+test_quickrand_mwc59x_32() ->
+    quickrand:mwc59x_32(10).
 
 test_quickrand_mwc256_64() ->
     quickrand:mwc256_64(10).
@@ -348,6 +360,13 @@ test(N) ->
     counts_init(),
     {Test36, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_mwc256_128/0]),
     counts_print("quickrand:mwc256_128/1"),
+    _ = test_25_rand_mwc59(),
+    counts_init(),
+    {Test37, _} = timer:tc(?MODULE, run, [N, fun test_25_rand_mwc59/0]),
+    counts_print("25_rand_mwc59"),
+    counts_init(),
+    {Test38, _} = timer:tc(?MODULE, run, [N, fun test_quickrand_mwc59x_32/0]),
+    counts_print("quickrand:mwc59x_32/1"),
 
     %% results
     [
@@ -386,6 +405,8 @@ test(N) ->
         %#result{name = "quickrand:strong_uniform/1", get =  Test33},
         %#result{name = "18_unique_phash2",           get =  Test34},
         #result{name = "quickrand:mwc256_64/1",      get =  Test35},
-        #result{name = "quickrand:mwc256_128/1",     get =  Test36}%,
+        #result{name = "quickrand:mwc256_128/1",     get =  Test36},
+        #result{name = "25_rand_mwc59",              get =  Test37},
+        #result{name = "quickrand:mwc59x_32/1",      get =  Test38}%,
     ].
 
